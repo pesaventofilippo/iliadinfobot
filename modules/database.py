@@ -19,7 +19,7 @@ class Data(db.Entity):
     accountId = Optional(int)
     numero = Optional(str)
 
-    totChiamate = Optional(Json)
+    totChiamate = Optional(str)
     costoChiamate = Optional(float)
     totSms = Optional(int)
     costoSms = Optional(float)
@@ -29,7 +29,7 @@ class Data(db.Entity):
     totMms = Optional(int)
     costoMms = Optional(float)
 
-    ext_totChiamate = Optional(Json)
+    ext_totChiamate = Optional(str)
     ext_costoChiamate = Optional(float)
     ext_totSms = Optional(int)
     ext_costoSms = Optional(float)

@@ -93,28 +93,11 @@ class IliadApi:
         return self.page.xpath(self.xpaths['numero'])[0].replace("Numero: ", "")
 
 
-    # dict: count(int) and unit(str)
+    # string: duration
     def totChiamate(self, estero: bool=False):
         xpath = "chiamateCount" if not estero else "ext-chiamateCount"
         raw = self.page.xpath(self.xpaths[xpath])[0].lower()
-        if "s" in raw:
-            count = int(raw.replace("s", ""))
-            unit = "second"
-        elif "m" in raw:
-            count = int(raw.replace("m", ""))
-            unit = "minut"
-        elif "h" in raw:
-            count = int(raw.replace("h", ""))
-            unit = "or"
-        else:
-            return {"count": 0, "unit": raw}
-
-        if unit == "second" or unit == "minut":
-            unit += "o" if count == 1 else "i"
-        else:
-            unit += "a" if count == 1 else "e"
-
-        return {"count": count, "unit": unit}
+        return raw
 
 
     # float: euros
