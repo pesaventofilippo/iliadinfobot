@@ -242,7 +242,7 @@ def reply(msg):
         elif text == "/overview":
             costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms
             sent = bot.sendMessage(chatId, f"ℹ️ <b>Riepilogo piano</b>\n\n"
-                                           f"📞 Chiamate: <b>{data.totChiamate['count']} {data.totChiamate['unit']}</b>\n"
+                                           f"📞 Chiamate: <b>{data.totChiamate}</b>\n"
                                            f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
                                            f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
                                            f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
@@ -255,10 +255,10 @@ def reply(msg):
 
         elif text == "/chiamate":
             bot.sendMessage(chatId, f"🇮🇹 <b>Chiamate in Italia</b>\n"
-                                    f"🕙 Tempo: <b>{data.totChiamate['count']} {data.totChiamate['unit']}</b>\n"
+                                    f"🕙 Tempo: <b>{data.totChiamate}</b>\n"
                                     f"💸 Costi extra: <b>{data.costoChiamate:.2f}€</b>\n\n"
                                     f"🇪🇺 <b>Chiamate in Europa</b>\n"
-                                    f"🕙 Tempo: <b>{data.ext_totChiamate['count']} {data.ext_totChiamate['unit']}</b>\n"
+                                    f"🕙 Tempo: <b>{data.ext_totChiamate}</b>\n"
                                     f"💸 Costi extra: <b>{data.ext_costoChiamate:.2f}€</b>", parse_mode="HTML")
 
         elif text == "/sms":
@@ -354,7 +354,7 @@ def button_press(msg):
     elif button == "overview_ext":
         costo = data.ext_costoChiamate + data.ext_costoGiga + data.ext_costoSms + data.ext_costoMms
         bot.editMessageText((chatId, message_id), f"ℹ️ <b>Riepilogo piano estero</b>\n\n"
-                                           f"📞 Chiamate: <b>{data.ext_totChiamate['count']} {data.ext_totChiamate['unit']}</b>\n"
+                                           f"📞 Chiamate: <b>{data.ext_totChiamate}</b>\n"
                                            f"🌐 Dati consumati: <b>{data.ext_totGiga['count']}{data.ext_totGiga['unit']}</b> su <b>"
                                            f"{data.ext_pianoGiga['count']}{data.ext_pianoGiga['unit']}</b>\n"
                                            f"✉️ SMS Inviati: <b>{data.ext_totSms}</b>\n"
@@ -365,7 +365,7 @@ def button_press(msg):
     elif button == "overview_ita":
         costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms
         bot.editMessageText((chatId, message_id), f"ℹ️ <b>Riepilogo piano</b>\n\n"
-                                           f"📞 Chiamate: <b>{data.totChiamate['count']} {data.totChiamate['unit']}</b>\n"
+                                           f"📞 Chiamate: <b>{data.totChiamate}</b>\n"
                                            f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
                                            f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
                                            f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
