@@ -139,8 +139,12 @@ class IliadApi:
     def totGiga(self, estero: bool=False):
         xpath = "gigaCount" if not estero else "ext-gigaCount"
         raw = self.page.xpath(self.xpaths[xpath])[0].upper()
-        unit = raw[-2:]
-        count = float(raw.replace(unit, "").replace(",", "."))
+        if raw == "0B":
+            count = 0
+            unit = "B"
+        else:
+            unit = raw[-2:]
+            count = float(raw.replace(unit, "").replace(",", "."))
         return {"count": count, "unit": unit}
 
 
