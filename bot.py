@@ -191,7 +191,7 @@ def reply(msg):
             bot.editMessageReplyMarkup((chatId, sent['message_id']), keyboards.logout(sent['message_id']))
 
         elif text == "/test":
-            api = IliadApi(user.username, decrypt_password(user.password))
+            api = IliadApi(user.username, decrypt_password(chatId))
             api.load()
             bot.sendMessage(chatId, f"Credito: {api.credito()}\n"
                                     f"Nome: {api.nome()}\n"
