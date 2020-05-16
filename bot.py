@@ -7,7 +7,7 @@ from telepot.exception import TelegramError, BotWasBlockedError
 from modules import helpers, keyboards
 from modules.api import AuthenticationFailedError, IliadApi
 from modules.crypter import crypt_password, decrypt_password
-from modules.database import User
+from modules.database import User, Data
 
 try:
     f = open('token.txt', 'r')
@@ -34,8 +34,11 @@ def reply(msg):
 
     if not User.exists(lambda u: u.chatId == chatId):
         User(chatId=chatId)
+    if not Data.exists(lambda d: d.chatId == chatId):
+        Data(chatId=chatId)
 
     user = User.get(chatId=chatId)
+    data = Data.get(chatId=chatId)
 
     if text == "/about":
         bot.sendMessage(chatId, "ℹ️ <b>Informazioni sul bot</b>\n"
