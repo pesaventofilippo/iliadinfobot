@@ -13,7 +13,7 @@ class User(db.Entity):
 
 class Data(db.Entity):
     chatId = Required(int)
-    credito = Optional(int)
+    credito = Optional(float)
     dataRinnovo = Optional(str)
     nome = Optional(str)
     accountId = Optional(int)
