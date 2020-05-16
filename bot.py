@@ -334,6 +334,7 @@ def reply(msg):
                                     "Premi /help se serve aiuto.".format(name), parse_mode="HTML")
 
 
+@db_session
 def button_press(msg):
     chatId, query_data = glance(msg, flavor="callback_query")[1:3]
     query_split = query_data.split("#")
