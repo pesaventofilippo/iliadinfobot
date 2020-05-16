@@ -2,6 +2,7 @@ from time import sleep
 from telepot import Bot, glance
 from threading import Thread
 from pony.orm import db_session, select, commit
+from datetime import datetime
 from telepot.exception import TelegramError, BotWasBlockedError
 
 from modules import helpers, keyboards
@@ -20,6 +21,28 @@ except FileNotFoundError:
     f.close()
 
 bot = Bot(token)
+updatesEvery = 30 # minutes
+
+
+@db_session
+def runUserUpdate(chatId):
+    user = User.get(chatId=chatId)
+    api = IliadApi(user.username, decrypt_password(chatId))
+    try:
+        api.load()
+    except AuthenticationFailedError:
+        helpers.clearUserData(chatId)
+        return
+
+    helpers.fetchAndStore(api, chatId)
+    user.remainingCalls = 3
+
+
+@db_session
+def runUpdates():
+    pendingUsers = select(user.chatId for user in User if user.password != "")[:]
+    for currentUser in pendingUsers:
+        Thread(target=runUserUpdate, args=[currentUser]).start()
 
 
 @db_session
@@ -110,6 +133,9 @@ def reply(msg):
                                     "Premi /help per vedere la lista dei comandi disponibili.\n\n"
                                     "<i>Se vuoi, puoi eliminare il messaggio che mi hai mandato contenente la password: "
                                     "non mi serve più!</i>", parse_mode="HTML")
+            sent = bot.sendMessage(chatId, "🔍 Aggiorno il profilo...")
+            helpers.fetchAndStore(api, chatId)
+            bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
 
         elif user.status == "calling_support":
             user.status = "normal"
@@ -129,8 +155,18 @@ def reply(msg):
         bot.sendMessage(chatId, "Ciao, sono il bot di <b>Iliad</b>! 👋🏻\n"
                                 "Posso aiutarti a <b>controllare</b> il tuo piano dati e posso mandarti <b>notifiche</b> (in futuro).\n\n"
                                 "<b>Lista dei comandi</b>:\n"
+                                "- /start - Avvia bot\n"
                                 "- /login - Effettua il login\n"
+                                "- /profilo - Informazioni sul profilo Iliad\n"
+                                "- /overview - Riepilogo generale dei consumi\n"
+                                "- /credito - Credito residuo\n"
+                                "- /internet - Visualizza piano dati\n"
+                                "- /chiamate - Visualizza piano chiamate\n"
+                                "- /sms - Visualizza piano SMS\n"
+                                "- /mms - Visualizza piano MMS\n"
                                 "- /logout - Disconnettiti\n"
+                                "- /aggiorna - Aggiorna tutti i dati. <b>Nota</b>: lo faccio già in automatico ogni mezz'ora per te!\n"
+                                "- /help - Mostra questa lista\n"
                                 "- /about - Informazioni sul bot\n"
                                 "- /aboutprivacy - Più informazioni sulla privacy\n"
                                 "- /support - Contatta lo staff (emergenze)\n\n"
@@ -142,6 +178,11 @@ def reply(msg):
         loggedUsers = len(select(u for u in User if u.password != "")[:])
         bot.sendMessage(chatId, "👤 Utenti totali: <b>{}</b>\n"
                                 "👤 Utenti loggati: <b>{}</b>".format(totalUsers, loggedUsers), parse_mode="HTML")
+
+    elif text == "/globalupdate" and helpers.isAdmin(chatId):
+        bot.sendMessage(chatId, "🕙 Inizio aggiornamento globale...")
+        runUpdates()
+        bot.sendMessage(chatId, "✅ Aggiornamento globale completato!")
 
     elif text.startswith("/broadcast ") and helpers.isAdmin(chatId):
         bdText = text.split(" ", 1)[1]
@@ -190,15 +231,61 @@ def reply(msg):
                                             "Sei <b>veramente sicuro</b> di voler uscire?", parse_mode="HTML")
             bot.editMessageReplyMarkup((chatId, sent['message_id']), keyboards.logout(sent['message_id']))
 
-        elif text == "/test":
-            api = IliadApi(user.username, decrypt_password(chatId))
-            api.load()
-            bot.sendMessage(chatId, f"Credito: {api.credito()}\n"
-                                    f"Nome: {api.nome()}\n"
-                                    f"Numero: {api.numero()}\n"
-                                    f"ID: {api.id()}\n"
-                                    f"Rinnovo: {api.dataRinnovo()}\n")
+        elif text == "/profilo":
+            bot.sendMessage(chatId, f"👤 <b>Info profilo</b>\n\n"
+                                    f"ℹ️ Nome: <b>{data.nome}</b>\n"
+                                    f"📞 Numero: <b>{data.numero}</b>\n"
+                                    f"🆔 ID Account: <b>{data.accountId}</b>\n\n"
+                                    f"💶 Credito residuo: <b>{data.credito:.2f}€</b>\n"
+                                    f"📅 Data rinnovo: <b>{data.dataRinnovo}</b>", parse_mode="HTML")
 
+        elif text == "/overview":
+            costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms
+            sent = bot.sendMessage(chatId, f"ℹ️ <b>Riepilogo piano</b>\n\n"
+                                           f"📞 Chiamate: <b>{data.totChiamate['count']} {data.totChiamate['unit']}</b>\n"
+                                           f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
+                                           f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
+                                           f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
+                                           f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
+                                           f"💸 Costi extra: {costo:.2f}€", parse_mode="HTML")
+            bot.editMessageReplyMarkup((chatId, sent['message_id']), keyboards.overviewExt(sent['message_id']))
+
+        elif text == "/credito":
+            bot.sendMessage(chatId, f"Il tuo credito residuo è di <b>{data.credito:.2f} euro</b>.", parse_mode="HTML")
+
+        elif text == "/chiamate":
+            bot.sendMessage(chatId, f"🇮🇹 <b>Chiamate in Italia</b>\n"
+                                    f"🕙 Tempo: <b>{data.totChiamate['count']} {data.totChiamate['unit']}</b>\n"
+                                    f"💸 Costi extra: <b>{data.costoChiamate:.2f}€</b>\n\n"
+                                    f"🇪🇺 <b>Chiamate in Europa</b>\n"
+                                    f"🕙 Tempo: <b>{data.ext_totChiamate['count']} {data.ext_totChiamate['unit']}</b>\n"
+                                    f"💸 Costi extra: <b>{data.ext_costoChiamate:.2f}€</b>", parse_mode="HTML")
+
+        elif text == "/sms":
+            bot.sendMessage(chatId, f"🇮🇹 <b>SMS in Italia</b>\n"
+                                    f"✉️ Inviati: <b>{data.totSms} SMS</b>\n"
+                                    f"💸 Costi extra: <b>{data.costoSms:.2f}€</b>\n\n"
+                                    f"🇪🇺 <b>SMS in Europa</b>\n"
+                                    f"✉️ Inviati: <b>{data.ext_totSms} SMS</b>\n"
+                                    f"💸 Costi extra: <b>{data.ext_costoSms:.2f}€</b>", parse_mode="HTML")
+
+        elif text == "/mms":
+            bot.sendMessage(chatId, f"🇮🇹 <b>MMS in Italia</b>\n"
+                                    f"📧 Inviati: <b>{data.totMms} MMS</b>\n"
+                                    f"💸 Costi extra: <b>{data.costoSms:.2f}€</b>\n\n"
+                                    f"🇪🇺 <b>MMS in Europa</b>\n"
+                                    f"📧 Inviati: <b>{data.ext_totMms} MMS</b>\n"
+                                    f"💸 Costi extra: <b>{data.ext_costoMms:.2f}€</b>", parse_mode="HTML")
+
+        elif text == "/internet":
+            bot.sendMessage(chatId, f"🇮🇹 <b>Piano dati in Italia</b>\n"
+                                    f"📶 Consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
+                                           f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
+                                    f"💸 Costi extra: <b>{data.costoGiga:.2f}€</b>\n\n"
+                                    f"🇪🇺 <b>Piano dati in Europa</b>\n"
+                                    f"📶 Consumati: <b>{data.ext_totGiga['count']}{data.ext_totGiga['unit']}</b> su <b>"
+                                           f"{data.ext_pianoGiga['count']}{data.ext_pianoGiga['unit']}</b>\n"
+                                    f"💸 Costi extra: <b>{data.ext_costoGiga:.2f}€</b>", parse_mode="HTML")
 
         elif text == "/support":
             user.status = "calling_support"
@@ -206,6 +293,30 @@ def reply(msg):
                                     "Se hai qualche problema che non riesci a risolvere, scrivi qui un messaggio, e un admin "
                                     "ti contatterà il prima possibile.\n\n"
                                     "<i>Per annullare, premi</i> /annulla.", parse_mode="HTML")
+
+        elif text == "/aggiorna":
+            if user.remainingCalls > 0:
+                user.remainingCalls -= 1
+                commit()
+                sent = bot.sendMessage(chatId, "📙📙📙 Aggiorno il profilo... 0%")
+                api = IliadApi(user.username, decrypt_password(chatId))
+                bot.editMessageText((chatId, sent['message_id']), "📗📙📙 Cerco aggiornamenti... 10%")
+
+                try:
+                    api.load()
+                except AuthenticationFailedError:
+                    helpers.clearUserData(chatId)
+                    bot.editMessageText((chatId, sent['message_id']), "⚠️ Le tue credenziali non sono corrette.\n"
+                                                                      "Rieffettua il /login!.")
+                    return
+
+                bot.editMessageText((chatId, sent['message_id']), "📗📙📙 Cerco aggiornamenti... 50%")
+                helpers.fetchAndStore(api, chatId)
+                bot.editMessageText((chatId, sent['message_id']), "📗📗📗  Cerco aggiornamenti... 100%")
+                bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
+
+            else:
+                bot.sendMessage(chatId, "⛔️ Hai usato troppi /aggiorna recentemente. Aspetta un po'!")
 
         else:
             bot.sendMessage(chatId, "Non ho capito...\n"
@@ -228,6 +339,7 @@ def button_press(msg):
     query_split = query_data.split("#")
     message_id = int(query_split[1])
     button = query_split[0]
+    data = Data.get(chatId=chatId)
 
     if button == "logout_yes":
         helpers.clearUserData(chatId)
@@ -237,6 +349,28 @@ def button_press(msg):
 
     elif button == "logout_no":
         bot.editMessageText((chatId, message_id), "<i>Logout annullato.</i>", parse_mode="HTML", reply_markup=None)
+
+    elif button == "overview_ext":
+        costo = data.ext_costoChiamate + data.ext_costoGiga + data.ext_costoSms + data.ext_costoMms
+        bot.editMessageText((chatId, message_id), f"ℹ️ <b>Riepilogo piano estero</b>\n\n"
+                                           f"📞 Chiamate: <b>{data.ext_totChiamate['count']} {data.ext_totChiamate['unit']}</b>\n"
+                                           f"🌐 Dati consumati: <b>{data.ext_totGiga['count']}{data.ext_totGiga['unit']}</b> su <b>"
+                                           f"{data.ext_pianoGiga['count']}{data.ext_pianoGiga['unit']}</b>\n"
+                                           f"✉️ SMS Inviati: <b>{data.ext_totSms}</b>\n"
+                                           f"📧 MMS Inviati: <b>{data.ext_totMms}</b>\n\n"
+                                           f"💸 Costi extra: {costo:.2f}€",
+                            parse_mode="HTML", reply_markup=keyboards.overviewIta(message_id))
+
+    elif button == "overview_ita":
+        costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms
+        bot.editMessageText((chatId, message_id), f"ℹ️ <b>Riepilogo piano</b>\n\n"
+                                           f"📞 Chiamate: <b>{data.totChiamate['count']} {data.totChiamate['unit']}</b>\n"
+                                           f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
+                                           f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
+                                           f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
+                                           f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
+                                           f"💸 Costi extra: {costo:.2f}€",
+                            parse_mode="HTML", reply_markup=keyboards.overviewExt(message_id))
 
 
 def accept_message(msg):
@@ -249,3 +383,6 @@ bot.message_loop({'chat': accept_message, 'callback_query': accept_button})
 
 while True:
     sleep(60)
+    minute = datetime.now().minute
+    if minute % updatesEvery == 0:
+        runUpdates()

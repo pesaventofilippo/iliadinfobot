@@ -8,6 +8,7 @@ class User(db.Entity):
     username = Optional(str)
     password = Optional(str)
     status = Required(str, default="normal")
+    remainingCalls = Required(int, default=3)
 
 
 class Data(db.Entity):
@@ -17,6 +18,7 @@ class Data(db.Entity):
     nome = Optional(str)
     accountId = Optional(int)
     numero = Optional(str)
+
     totChiamate = Optional(Json)
     costoChiamate = Optional(float)
     totSms = Optional(int)
@@ -26,6 +28,16 @@ class Data(db.Entity):
     pianoGiga = Optional(Json)
     totMms = Optional(int)
     costoMms = Optional(float)
+
+    ext_totChiamate = Optional(Json)
+    ext_costoChiamate = Optional(float)
+    ext_totSms = Optional(int)
+    ext_costoSms = Optional(float)
+    ext_totGiga = Optional(Json)
+    ext_costoGiga = Optional(float)
+    ext_pianoGiga = Optional(Json)
+    ext_totMms = Optional(int)
+    ext_costoMms = Optional(float)
 
 
 db.generate_mapping(create_tables=True)
