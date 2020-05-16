@@ -1,3 +1,7 @@
+## Custom Files
+modules/crypter.py
+token.txt
+iliadinfobot.db
 
 # Created by https://www.gitignore.io/api/linux,macos,python,pycharm,windows,visualstudiocode
 # Edit at https://www.gitignore.io/?templates=linux,macos,python,pycharm,windows,visualstudiocode
