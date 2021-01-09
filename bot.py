@@ -1,9 +1,9 @@
 from time import sleep
-from telepot import Bot, glance
+from telepotpro import Bot, glance
 from threading import Thread
 from pony.orm import db_session, select, commit
 from datetime import datetime
-from telepot.exception import TelegramError, BotWasBlockedError
+from telepotpro.exception import TelegramError, BotWasBlockedError
 
 from modules import helpers, keyboards
 from modules.api import AuthenticationFailedError, IliadApi

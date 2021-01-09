@@ -1,5 +1,5 @@
 from time import sleep
-from telepot import Bot
+from telepotpro import Bot
 from modules.database import User, Data
 
 bot = None
