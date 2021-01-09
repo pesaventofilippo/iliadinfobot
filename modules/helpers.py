@@ -51,37 +51,10 @@ def hasStoredCredentials(chatId):
 
 def clearUserData(chatId):
     user = User.get(chatId=chatId)
-    user.username = ""
-    user.password = ""
-    user.status = "normal"
-    user.remainingCalls = 3
+    user.delete()
 
     data = Data.get(chatId=chatId)
-    data.credito = 0
-    data.dataRinnovo = ""
-    data.nome = ""
-    data.accountId = 0
-    data.numero = ""
-
-    data.totChiamate = {}
-    data.costoChiamate = 0
-    data.totSms = 0
-    data.costoSms = 0
-    data.totGiga = {}
-    data.costoGiga = 0
-    data.pianoGiga = {}
-    data.totMms = 0
-    data.costoMms = 0
-
-    data.ext_totChiamate = {}
-    data.ext_costoChiamate = 0
-    data.ext_totSms = 0
-    data.ext_costoSms = 0
-    data.ext_totGiga = {}
-    data.ext_costoGiga = 0
-    data.ext_pianoGiga = {}
-    data.ext_totMms = 0
-    data.ext_costoMms = 0
+    data.delete()
 
 
 def fetchAndStore(api, chatId):
