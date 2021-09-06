@@ -47,7 +47,7 @@ class IliadApi:
         }
 
         if name in paths["special"].keys():
-            selected = paths["special"]["name"]
+            selected = paths["special"][name]
 
         else:
             cat = "info" if name in paths["info"].keys() else "basic"
@@ -141,7 +141,7 @@ class IliadApi:
         raw = self.page.xpath(self.xpaths("gigaCount", estero))[0].upper()
         split = re.split('(\d+)', raw)
         return {
-            "count": int("".join(split[:-1]).replace(",", ".")),
+            "count": float("".join(split[:-1]).replace(",", ".")),
             "unit":  str(split[-1])
         }
 
@@ -156,7 +156,7 @@ class IliadApi:
         raw = self.page.xpath(self.xpaths("gigaTot", estero))[0].replace(" / ", "").upper()
         split = re.split('(\d+)', raw)
         return {
-            "count": int("".join(split[:-1]).replace(",", ".")),
+            "count": float("".join(split[:-1]).replace(",", ".")),
             "unit": str(split[-1])
         }
 

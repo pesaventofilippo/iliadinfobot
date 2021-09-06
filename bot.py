@@ -381,6 +381,7 @@ def accept_button(msg):
     Thread(target=button_press, args=[msg]).start()
 
 bot.message_loop({'chat': accept_message, 'callback_query': accept_button})
+runUpdates()
 
 while True:
     sleep(60)
