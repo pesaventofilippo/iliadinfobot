@@ -12,31 +12,31 @@ class IliadApi:
 
     xpaths = {
         "loginError":    "//div[@class='flash flash-error']/text()",
-        "credito":       "//*[@id='page-container']/div/div[2]/div[2]/h2/b",
-        "rinnovo":       "//*[@id='page-container']/div/div[2]/div[2]/div[3]",
+        "credito":       "//*[@id='page-container']/div/div[2]/div[2]/div[9]/div[2]",
+        "rinnovo":       "//*[@id='page-container']/div/div[2]/div[2]/div[4]",
         "nome":          "//*[@id='page-container']/div/nav/div/div/div[2]/div[1]",
         "id":            "//*[@id='page-container']/div/nav/div/div/div[2]/div[2]",
-        "numero":        "//*[@id='page-container']/div/nav/div/div/div[2]/div[3])",
+        "numero":        "//*[@id='page-container']/div/nav/div/div/div[2]/div[3]",
 
-        "chiamateCount": "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[1]/div[1]/div/div[1]/span[1]/text()",
-        "chiamateCosto": "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[1]/div[1]/div/div[1]/span[2]/text()",
-        "smsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[1]/div[2]/div/div[1]/span[1]/text()",
-        "smsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[1]/div[2]/div/div[1]/span[2]/text()",
-        "gigaCount":     "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[2]/div[1]/div/div[1]/span[1]/text()",
-        "gigaTot":       "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[2]/div[1]/div/div[1]/text()[2]",
-        "gigaCosto":     "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[2]/div[1]/div/div[1]/span[2]/text()",
-        "mmsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[2]/div[2]/div/div[1]/span[1]/text()",
-        "mmsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[4]/div[2]/div[2]/div/div[1]/span[2]/text()",
+        "chiamateCount": "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[1]/div/div[1]/span[1]",
+        "chiamateCosto": "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[1]/div/div[1]/span[2]",
+        "smsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[2]/div/div[1]/span[1]",
+        "smsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[2]/div/div[1]/span[2]",
+        "gigaCount":     "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[1]/div/div[1]/span[1]",
+        "gigaTot":       "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[1]/div/div[1]/text()[1]",
+        "gigaCosto":     "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[1]/div/div[1]/span[2]",
+        "mmsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[2]/div/div[1]/span[1]/text()",
+        "mmsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[2]/div/div[1]/span[2]",
 
-        "ext-chiamateCount": "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[1]/div/div[1]/span[1]/text()",
-        "ext-chiamateCosto": "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[1]/div/div[1]/span[2]/text()",
-        "ext-smsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[2]/div/div[1]/span[1]/text()",
-        "ext-smsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[1]/div[2]/div/div[1]/span[2]/text()",
-        "ext-gigaCount":     "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[1]/div/div[1]/span[1]/text()",
-        "ext-gigaTot":       "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[1]/div/div[1]/text()[2]",
-        "ext-gigaCosto":     "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[1]/div/div[1]/span[2]/text()",
-        "ext-mmsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[2]/div/div[1]/span[1]/text()",
-        "ext-mmsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[5]/div[2]/div[2]/div/div[1]/span[2]/text()"
+        "ext-chiamateCount": "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[1]/div[1]/div/div[1]/span[1]",
+        "ext-chiamateCosto": "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[1]/div[1]/div/div[1]/span[2]",
+        "ext-smsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[1]/div[2]/div/div[1]/span[1]",
+        "ext-smsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[1]/div[2]/div/div[1]/span[2]",
+        "ext-gigaCount":     "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[2]/div[1]/div/div[1]/span[1]",
+        "ext-gigaTot":       "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[2]/div[1]/div/div[1]/text()[1]",
+        "ext-gigaCosto":     "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[2]/div[1]/div/div[1]/span[2]",
+        "ext-mmsCount":      "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[2]/div[2]/div/div[1]/span[1]/text()",
+        "ext-mmsCosto":      "//*[@id='page-container']/div/div[2]/div[2]/div[6]/div[2]/div[2]/div/div[1]/span[2]"
     }
 
 
