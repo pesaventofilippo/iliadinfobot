@@ -39,7 +39,7 @@ class IliadApi:
                 "smsCount":      "div[1]/div[2]/div/div[1]/span[1]",
                 "smsCosto":      "div[1]/div[2]/div/div[1]/span[2]",
                 "gigaCount":     "div[2]/div[1]/div/div[1]/span[1]",
-                "gigaTot":       "div[2]/div[1]/div/div[1]/text()[1]",
+                "gigaTot":       "div[2]/div[1]/div/div[1]/text()[2]",
                 "gigaCosto":     "div[2]/div[1]/div/div[1]/span[2]",
                 "mmsCount":      "div[2]/div[2]/div/div[1]/span[1]",
                 "mmsCosto":      "div[2]/div[2]/div/div[1]/span[2]"
