@@ -17,13 +17,14 @@ class IliadApi:
             "notext": ["gigaTot"],
 
             "special": {
-                "loginError": "//div[@class='flash flash-error']"
+                "loginError": "//div[@class='flash flash-error']",
+                "banner": "//*[@id='page-container']/div/div[2]/div[2]/div[1]/a/img"
             },
 
             "basic": {
                 "_base":   "",
-                "credito": "div[2]/div[2]/div[9]/div[2]",
-                "rinnovo": "div[2]/div[2]/div[4]",
+                "credito": "div[2]/div[2]/div[{0}]/div[2]".format(9 if self.skipBanner else 8),
+                "rinnovo": "div[2]/div[2]/div[{0}]".format(4 if self.skipBanner else 3),
                 "nome":    "nav/div/div/div[2]/div[1]",
                 "id":      "nav/div/div/div[2]/div[2]",
                 "numero":  "nav/div/div/div[2]/div[3]"
@@ -31,8 +32,8 @@ class IliadApi:
 
             "info": {
                 "_base":      "div[2]/div[2]/",
-                "_intSuffix": "div[5]/",
-                "_extSuffix": "div[6]/",
+                "_intSuffix": "div[{0}]/".format(5 if self.skipBanner else 4),
+                "_extSuffix": "div[{0}]/".format(6 if self.skipBanner else 5),
 
                 "chiamateCount": "div[1]/div[1]/div/div[1]/span[1]",
                 "chiamateCosto": "div[1]/div[1]/div/div[1]/span[2]",
@@ -67,6 +68,7 @@ class IliadApi:
         self.username = username
         self.password = password
         self.page = None
+        self.skipBanner = False
 
 
     def load(self):
@@ -83,6 +85,10 @@ class IliadApi:
         error = tree.xpath(self.xpaths("loginError"))
         if error:
             raise AuthenticationFailedError
+
+        banner = tree.xpath(self.xpaths("banner"))
+        if banner:
+            self.skipBanner = True
 
         self.page = tree
 
