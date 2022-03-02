@@ -102,7 +102,7 @@ class IliadApi:
         el = self._getXPath("costoSms", estero)
         return float(el.replace("€", ""))
 
-    def totGiga(self, estero: bool=False) -> dict[float, str]:
+    def totGiga(self, estero: bool=False) -> dict:
         el = self._getXPath("totGiga", estero)
         split = re.split('(\d+)', el.upper())[1:]
         return {
@@ -114,7 +114,7 @@ class IliadApi:
         el = self._getXPath("costoGiga", estero)
         return float(el.replace("€", ""))
 
-    def pianoGiga(self, estero: bool=False) -> dict[int, str]:
+    def pianoGiga(self, estero: bool=False) -> dict:
         el = self._getXPath("pianoGiga", estero)
         split = re.split('(\d+)', el.upper())[1:]
         return {
