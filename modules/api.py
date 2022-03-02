@@ -74,9 +74,9 @@ class IliadApi:
         el = self._getXPath("id")
         return int(el)
 
-    def numero(self) -> int:
+    def numero(self) -> str:
         el = self._getXPath("numero")
-        return int(el.replace(" ", ""))
+        return el.replace(" ", "")
 
     def credito(self) -> float:
         el = self._getXPath("credito")
