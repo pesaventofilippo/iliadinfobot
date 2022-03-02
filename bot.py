@@ -1,24 +1,22 @@
 from time import sleep
-from telepotpro import Bot, glance
+from telepotpro import Bot
 from threading import Thread
-from pony.orm import db_session, select, commit
 from datetime import datetime
+from pony.orm import db_session, select, commit
 from telepotpro.exception import TelegramError, BotWasBlockedError
 
 from modules import helpers, keyboards
+from modules.database import User, Data
 from modules.api import AuthenticationFailedError, IliadApi
 from modules.crypter import crypt_password, decrypt_password
-from modules.database import User, Data
 
 try:
-    f = open('token.txt', 'r')
-    token = f.readline().strip()
-    f.close()
+    with open("token.txt", "r") as f:
+        token = f.readline().strip()
 except FileNotFoundError:
-    token = input(" * Incolla qui il token di BotFather: ")
-    f = open('token.txt', 'w')
-    f.write(token)
-    f.close()
+    with open("token.txt", "w") as f:
+        token = input(" * Incolla qui il token di BotFather: ")
+        f.write(token)
 
 bot = Bot(token)
 updatesEvery = 30 # minutes
@@ -140,10 +138,9 @@ def reply(msg):
         elif user.status == "calling_support":
             user.status = "normal"
             for a in helpers.isAdmin():
-                bot.sendMessage(a, "🆘 <b>Richiesta di aiuto</b>\n"
-                                   "Da: <a href=\"tg://user?id={0}\">{1}</a>\n\n"
-                                   "<i>Rispondi al messaggio per parlare con l'utente.</i>".format(chatId, name),
-                                parse_mode="HTML")
+                bot.sendMessage(a, f"🆘 <b>Richiesta di aiuto</b>\n"
+                                   f"Da: <a href=\"tg://user?id={chatId}\">{name}</a> [{chatId}]\n\n"
+                                   f"<i>Rispondi al messaggio per parlare con l'utente.</i>", parse_mode="HTML")
                 if "reply_to_message" in msg:
                     bot.forwardMessage(a, chatId, msg["reply_to_message"]["message_id"])
                 bot.forwardMessage(a, chatId, msg['message_id'], disable_notification=True)
@@ -176,8 +173,8 @@ def reply(msg):
     elif text == "/users" and helpers.isAdmin(chatId):
         totalUsers = len(select(u for u in User)[:])
         loggedUsers = len(select(u for u in User if u.password != "")[:])
-        bot.sendMessage(chatId, "👤 Utenti totali: <b>{}</b>\n"
-                                "👤 Utenti loggati: <b>{}</b>".format(totalUsers, loggedUsers), parse_mode="HTML")
+        bot.sendMessage(chatId, f"👤 Utenti totali: <b>{totalUsers}</b>\n"
+                                f"👤 Utenti loggati: <b>{loggedUsers}</b>", parse_mode="HTML")
 
     elif text == "/globalupdate" and helpers.isAdmin(chatId):
         bot.sendMessage(chatId, "🕙 Inizio aggiornamento globale...")
@@ -193,7 +190,7 @@ def reply(msg):
                 bot.sendMessage(u, bdText, parse_mode="HTML", disable_web_page_preview=True)
             except (TelegramError, BotWasBlockedError):
                 userCount -= 1
-        bot.sendMessage(chatId, "📢 Messaggio inviato correttamente a {0} utenti!".format(userCount))
+        bot.sendMessage(chatId, f"📢 Messaggio inviato correttamente a {userCount} utenti!")
 
     elif text.startswith("/sendmsg ") and helpers.isAdmin(chatId):
         selId = int(text.split(" ", 2)[1])
@@ -205,8 +202,7 @@ def reply(msg):
         if helpers.isAdmin(chatId):
             try:
                 userId = msg['reply_to_message']['forward_from']['id']
-                bot.sendMessage(userId, "💬 <b>Risposta dello staff</b>\n"
-                                        "{0}".format(text), parse_mode="HTML")
+                bot.sendMessage(userId, f"💬 <b>Risposta dello staff</b>\n{text}", parse_mode="HTML")
                 bot.sendMessage(chatId, "Risposta inviata!")
             except Exception:
                 bot.sendMessage(chatId, "Errore nell'invio.")
@@ -219,17 +215,17 @@ def reply(msg):
 
     elif helpers.hasStoredCredentials(chatId):
         if text == "/start":
-            bot.sendMessage(chatId, "Bentornato, <b>{0}</b>!\n"
-                                    "Cosa posso fare per te? 😊".format(name), parse_mode="HTML")
+            bot.sendMessage(chatId, f"Bentornato, <b>{name}</b>!\n"
+                                    f"Cosa posso fare per te? 😊", parse_mode="HTML")
 
         elif text == "/login":
             bot.sendMessage(chatId, "Sei già loggato.\n"
                                     "Premi /logout per uscire.")
 
         elif text == "/logout":
-            sent = bot.sendMessage(chatId, "Tutti i tuoi dati relativi all'account e le credenziali verranno eliminate dal bot.\n"
-                                            "Sei <b>veramente sicuro</b> di voler uscire?", parse_mode="HTML")
-            bot.editMessageReplyMarkup((chatId, sent['message_id']), keyboards.logout(sent['message_id']))
+            bot.sendMessage(chatId, "Tutti i tuoi dati relativi all'account e le credenziali verranno eliminate dal bot.\n"
+                                    "Sei <b>veramente sicuro</b> di voler uscire?",
+                            parse_mode="HTML", reply_markup=keyboards.logout())
 
         elif text == "/profilo":
             bot.sendMessage(chatId, f"👤 <b>Info profilo</b>\n\n"
@@ -241,14 +237,14 @@ def reply(msg):
 
         elif text == "/overview":
             costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms
-            sent = bot.sendMessage(chatId, f"ℹ️ <b>Riepilogo piano</b>\n\n"
-                                           f"📞 Chiamate: <b>{data.totChiamate}</b>\n"
-                                           f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
-                                           f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
-                                           f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
-                                           f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
-                                           f"💸 Costi extra: {costo:.2f}€", parse_mode="HTML")
-            bot.editMessageReplyMarkup((chatId, sent['message_id']), keyboards.overviewExt(sent['message_id']))
+            bot.sendMessage(chatId, f"ℹ️ <b>Riepilogo piano</b>\n\n"
+                                    f"📞 Chiamate: <b>{data.totChiamate}</b>\n"
+                                    f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
+                                    f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
+                                    f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
+                                    f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
+                                    f"💸 Costi extra: {costo:.2f}€",
+                            parse_mode="HTML", reply_markup=keyboards.overviewExt())
 
         elif text == "/credito":
             bot.sendMessage(chatId, f"Il tuo credito residuo è di <b>{data.credito:.2f} euro</b>.", parse_mode="HTML")
@@ -307,12 +303,11 @@ def reply(msg):
                 except AuthenticationFailedError:
                     helpers.clearUserData(chatId)
                     bot.editMessageText((chatId, sent['message_id']), "⚠️ Le tue credenziali non sono corrette.\n"
-                                                                      "Rieffettua il /login!.")
+                                                                      "Rieffettua il /login.")
                     return
 
                 bot.editMessageText((chatId, sent['message_id']), "📗📙📙 Cerco aggiornamenti... 50%")
                 helpers.fetchAndStore(api, chatId)
-                bot.editMessageText((chatId, sent['message_id']), "📗📗📗  Cerco aggiornamenti... 100%")
                 bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
 
             else:
@@ -329,49 +324,49 @@ def reply(msg):
                                     "all'Area Personale).\n"
                                     "Usa /annulla se serve.", parse_mode="HTML")
         else:
-            bot.sendMessage(chatId, "Benvenuto, <b>{0}</b>!\n"
-                                    "Per favore, premi /login per utilizzarmi.\n\n"
-                                    "Premi /help se serve aiuto.".format(name), parse_mode="HTML")
+            bot.sendMessage(chatId, f"Benvenuto, <b>{name}</b>!\n"
+                                    f"Per favore, premi /login per utilizzarmi.\n\n"
+                                    f"Premi /help se serve aiuto.", parse_mode="HTML")
 
 
 @db_session
 def button_press(msg):
-    chatId, query_data = glance(msg, flavor="callback_query")[1:3]
-    query_split = query_data.split("#")
-    message_id = int(query_split[1])
-    button = query_split[0]
+    chatId = msg['message']['chat']['id']
+    msgId = msg['message']['message_id']
+    message = (chatId, msgId)
+    button = msg['data']
     data = Data.get(chatId=chatId)
 
     if button == "logout_yes":
         helpers.clearUserData(chatId)
-        bot.editMessageText((chatId, message_id), "😯 Fatto, sei stato disconnesso!\n"
-                                                  "Premi /login per entrare di nuovo.\n\n"
-                                                  "Premi /help se serve aiuto.", reply_markup=None)
+        bot.editMessageText(message, "😯 Fatto, sei stato disconnesso!\n"
+                                     "Premi /login per entrare di nuovo.\n\n"
+                                     "Premi /help se serve aiuto.", reply_markup=None)
 
     elif button == "logout_no":
-        bot.editMessageText((chatId, message_id), "<i>Logout annullato.</i>", parse_mode="HTML", reply_markup=None)
+        bot.editMessageText(message, "Logout annullato.", reply_markup=None)
 
     elif button == "overview_ext":
         costo = data.ext_costoChiamate + data.ext_costoGiga + data.ext_costoSms + data.ext_costoMms
-        bot.editMessageText((chatId, message_id), f"ℹ️ <b>Riepilogo piano estero</b>\n\n"
-                                           f"📞 Chiamate: <b>{data.ext_totChiamate}</b>\n"
-                                           f"🌐 Dati consumati: <b>{data.ext_totGiga['count']}{data.ext_totGiga['unit']}</b> su <b>"
-                                           f"{data.ext_pianoGiga['count']}{data.ext_pianoGiga['unit']}</b>\n"
-                                           f"✉️ SMS Inviati: <b>{data.ext_totSms}</b>\n"
-                                           f"📧 MMS Inviati: <b>{data.ext_totMms}</b>\n\n"
-                                           f"💸 Costi extra: {costo:.2f}€",
-                            parse_mode="HTML", reply_markup=keyboards.overviewIta(message_id))
+        bot.editMessageText(message, f"ℹ️ <b>Riepilogo piano estero</b>\n\n"
+                                     f"📞 Chiamate: <b>{data.ext_totChiamate}</b>\n"
+                                     f"🌐 Dati consumati: <b>{data.ext_totGiga['count']}{data.ext_totGiga['unit']}</b> su <b>"
+                                     f"{data.ext_pianoGiga['count']}{data.ext_pianoGiga['unit']}</b>\n"
+                                     f"✉️ SMS Inviati: <b>{data.ext_totSms}</b>\n"
+                                     f"📧 MMS Inviati: <b>{data.ext_totMms}</b>\n\n"
+                                     f"💸 Costi extra: {costo:.2f}€",
+                            parse_mode="HTML", reply_markup=keyboards.overviewIta())
 
     elif button == "overview_ita":
         costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms
-        bot.editMessageText((chatId, message_id), f"ℹ️ <b>Riepilogo piano</b>\n\n"
-                                           f"📞 Chiamate: <b>{data.totChiamate}</b>\n"
-                                           f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
-                                           f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
-                                           f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
-                                           f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
-                                           f"💸 Costi extra: {costo:.2f}€",
-                            parse_mode="HTML", reply_markup=keyboards.overviewExt(message_id))
+        bot.editMessageText(message, f"ℹ️ <b>Riepilogo piano</b>\n\n"
+                                     f"📞 Chiamate: <b>{data.totChiamate}</b>\n"
+                                     f"🌐 Dati consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
+                                     f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
+                                     f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
+                                     f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
+                                     f"💸 Costi extra: {costo:.2f}€",
+                            parse_mode="HTML", reply_markup=keyboards.overviewExt())
 
 
 def accept_message(msg):

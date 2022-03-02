@@ -1,4 +1,5 @@
 from requests import session as reqSession
+from datetime import datetime
 from lxml import html
 import re
 
@@ -10,168 +11,121 @@ class AuthenticationFailedError(Exception):
 
 class IliadApi:
     loginUrl = "https://www.iliad.it/account/"
-
-    def xpaths(self, name: str, estero: bool=False):
-        paths = {
-            "_base":  "//*[@id='page-container']/div/",
-            "notext": ["gigaTot"],
-
-            "special": {
-                "loginError": "//div[@class='flash flash-error']",
-                "banner": "//*[@id='page-container']/div/div[2]/div[2]/div[1]/a/img"
-            },
-
-            "basic": {
-                "_base":   "",
-                "credito": "div[2]/div[2]/div[{0}]/div[2]".format(9 if self.skipBanner else 8),
-                "rinnovo": "div[2]/div[2]/div[{0}]".format(4 if self.skipBanner else 3),
-                "nome":    "nav/div/div/div[2]/div[1]",
-                "id":      "nav/div/div/div[2]/div[2]",
-                "numero":  "nav/div/div/div[2]/div[3]"
-            },
-
-            "info": {
-                "_base":      "div[2]/div[2]/",
-                "_intSuffix": "div[{0}]/".format(5 if self.skipBanner else 4),
-                "_extSuffix": "div[{0}]/".format(6 if self.skipBanner else 5),
-
-                "chiamateCount": "div[1]/div[1]/div/div[1]/span[1]",
-                "chiamateCosto": "div[1]/div[1]/div/div[1]/span[2]",
-                "smsCount":      "div[1]/div[2]/div/div[1]/span[1]",
-                "smsCosto":      "div[1]/div[2]/div/div[1]/span[2]",
-                "gigaCount":     "div[2]/div[1]/div/div[1]/span[1]",
-                "gigaTot":       "div[2]/div[1]/div/div[1]/text()[2]",
-                "gigaCosto":     "div[2]/div[1]/div/div[1]/span[2]",
-                "mmsCount":      "div[2]/div[2]/div/div[1]/span[1]",
-                "mmsCosto":      "div[2]/div[2]/div/div[1]/span[2]"
-            }
-        }
-
-        if name in paths["special"].keys():
-            selected = paths["special"][name]
-
-        else:
-            cat = "info" if name in paths["info"].keys() else "basic"
-            selected = paths["_base"] + paths[cat]["_base"]
-            if cat == "info":
-                suffix = "_intSuffix" if not estero else "_extSuffix"
-                selected += paths["info"][suffix]
-            selected += paths[cat][name]
-
-        if name not in paths["notext"]:
-            selected += "/text()"
-
-        return selected
-
+    _xpaths = {
+        "nome":          "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[1]/text()[2]",
+        "id":            "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[2]/span",
+        "numero":        "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[3]/span",
+        "credito":       "//*[@id='container']/div/div/div[2]/div/div/div/div/h2/b",
+        "rinnovo":       "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]",
+        "totChiamate":   "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[1]",
+        "costoChiamate": "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[2]",
+        "totSms":        "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[2]/div/div[1]/span[1]",
+        "costoSms":      "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[2]/div/div[1]/span[2]",
+        "totGiga":       "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/span[1]",
+        "costoGiga":     "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/span[2]",
+        "pianoGiga":     "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/text()[2]",
+        "totMms":        "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[2]/div/div[1]/span[1]",
+        "costoMms":      "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[2]/div/div[1]/span[2]"
+    }
 
     def __init__(self, username: str, password: str):
-        self.username = username
-        self.password = password
-        self.page = None
-        self.skipBanner = False
+        self._username = username
+        self._password = password
+        self._page = None
 
+    def _getXPath(self, name: str, estero: bool=False) -> str:
+        intIndex = 3 if estero else 2
+        xpath = self._xpaths[name].format(intIndex)
+        if "text()" not in xpath:
+            xpath += "/text()"
+        return str(self._page.xpath(xpath)[0]).strip(" \n")
 
     def load(self):
         loginInfo = {
-            "login-ident": self.username,
-            "login-pwd": self.password
+            "login-ident": self._username,
+            "login-pwd": self._password
         }
 
-        with reqSession() as sess:
-            sess.get(self.loginUrl)
-            resp = sess.post(self.loginUrl, loginInfo)
+        with reqSession() as httpSession:
+            httpSession.get(self.loginUrl)
+            resp = httpSession.post(self.loginUrl, loginInfo)
         tree = html.fromstring(resp.content)
 
-        error = tree.xpath(self.xpaths("loginError"))
-        if error:
-            raise AuthenticationFailedError
+        # Remove promotional divs
+        delDivs = [
+            "//div[@class='marketing-consent-banner']",
+            "//div[@class='change-offer-banner']",
+            "//div[@class='banner-payment-upgrade']"
+        ]
+        for div in delDivs:
+            try:
+                div = tree.xpath(div)[0]
+                div.getparent().remove(div)
+            except Exception:
+                pass
 
-        banner = tree.xpath(self.xpaths("banner"))
-        if banner:
-            self.skipBanner = True
+        self._page = tree
 
-        self.page = tree
+    def nome(self) -> str:
+        el = self._getXPath("nome")
+        return el
 
+    def id(self) -> int:
+        el = self._getXPath("id")
+        return int(el)
 
-    # float: euros
-    def credito(self):
-        return float(self.page.xpath(self.xpaths("credito"))[0].replace("€", ""))
+    def numero(self) -> int:
+        el = self._getXPath("numero")
+        return int(el.replace(" ", ""))
 
+    def credito(self) -> float:
+        el = self._getXPath("credito")
+        return float(el.replace("€", ""))
 
-    # datetime: contract renewal
-    def dataRinnovo(self):
-        from datetime import datetime
-        raw = self.page.xpath(self.xpaths("rinnovo"))[0]\
-            .replace("\n         La tua offerta iliad si rinnoverà alle ", "")\
-            .replace("\n      ", "")
-        return datetime.strptime(raw, "%H:%M del %d/%m/%Y")
+    def dataRinnovo(self) -> datetime:
+        el = self._getXPath("rinnovo")
+        return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
 
+    def totChiamate(self, estero: bool=False) -> str:
+        el = self._getXPath("totChiamate", estero)
+        return el.lower()
 
-    # string: holder name
-    def nome(self):
-        return self.page.xpath(self.xpaths("nome"))[0]
+    def costoChiamate(self, estero: bool=False) -> float:
+        el = self._getXPath("costoChiamate", estero)
+        return float(el.replace("€", ""))
 
+    def totSms(self, estero: bool=False) -> int:
+        el = self._getXPath("totSms", estero)
+        return int(el.replace(" SMS", ""))
 
-    # int: account id
-    def id(self):
-        return int(self.page.xpath(self.xpaths("id"))[0].replace("ID utente: ", ""))
+    def costoSms(self, estero: bool=False) -> float:
+        el = self._getXPath("costoSms", estero)
+        return float(el.replace("€", ""))
 
-
-    # string: phone number (with spaces and no country code)
-    def numero(self):
-        return self.page.xpath(self.xpaths("numero"))[0].replace("Numero: ", "")
-
-
-    # string: duration
-    def totChiamate(self, estero: bool=False):
-        return self.page.xpath(self.xpaths("chiamateCount", estero))[0].lower()
-
-
-    # float: euros
-    def costoChiamate(self, estero: bool=False):
-        return float(self.page.xpath(self.xpaths("chiamateCosto", estero))[0].replace("€", ""))
-
-
-    # int: sms count
-    def totSms(self, estero: bool=False):
-        return int(self.page.xpath(self.xpaths("smsCount", estero))[0].replace(" SMS", ""))
-
-
-    # float: euros
-    def costoSms(self, estero: bool=False):
-        return float(self.page.xpath(self.xpaths("smsCosto", estero))[0].replace("€", ""))
-
-
-    # dict: count(float) and unit(str)
-    def totGiga(self, estero: bool=False):
-        raw = self.page.xpath(self.xpaths("gigaCount", estero))[0].upper()
-        split = re.split('(\d+)', raw)
+    def totGiga(self, estero: bool=False) -> dict[float, str]:
+        el = self._getXPath("totGiga", estero)
+        split = re.split('(\d+)', el.upper())[1:]
         return {
             "count": float("".join(split[:-1]).replace(",", ".")),
             "unit":  str(split[-1])
         }
 
+    def costoGiga(self, estero: bool=False) -> float:
+        el = self._getXPath("costoGiga", estero)
+        return float(el.replace("€", ""))
 
-    # float: euros
-    def costoGiga(self, estero: bool=False):
-        return float(self.page.xpath(self.xpaths("gigaCosto", estero))[0].replace("€", ""))
-
-
-    # dict: count(int) and unit(str)
-    def pianoGiga(self, estero: bool=False):
-        raw = self.page.xpath(self.xpaths("gigaTot", estero))[0].replace(" / ", "").upper()
-        split = re.split('(\d+)', raw)
+    def pianoGiga(self, estero: bool=False) -> dict[int, str]:
+        el = self._getXPath("pianoGiga", estero)
+        split = re.split('(\d+)', el.upper())[1:]
         return {
             "count": float("".join(split[:-1]).replace(",", ".")),
             "unit": str(split[-1])
         }
 
+    def totMms(self, estero: bool=False) -> int:
+        el = self._getXPath("totMms", estero)
+        return int(el.replace(" MMS", ""))
 
-    # int: count
-    def totMms(self, estero: bool=False):
-        return int(self.page.xpath(self.xpaths("mmsCount", estero))[0].replace(" MMS", ""))
-
-
-    # float: euros
-    def costoMms(self, estero: bool=False):
-        return float(self.page.xpath(self.xpaths("mmsCosto", estero))[0].replace("€", ""))
+    def costoMms(self, estero: bool=False) -> float:
+        el = self._getXPath("costoMms", estero)
+        return float(el.replace("€", ""))
