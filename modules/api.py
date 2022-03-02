@@ -11,6 +11,7 @@ class AuthenticationFailedError(Exception):
 
 class IliadApi:
     loginUrl = "https://www.iliad.it/account/"
+    offertaUrl = "https://www.iliad.it/account/gestisci-lofferta"
     _xpaths = {
         "nome":          "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[1]/text()[2]",
         "id":            "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[2]/span",
@@ -25,20 +26,21 @@ class IliadApi:
         "costoGiga":     "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/span[2]",
         "pianoGiga":     "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/text()[2]",
         "totMms":        "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[2]/div/div[1]/span[1]",
-        "costoMms":      "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[2]/div/div[1]/span[2]"
+        "costoMms":      "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[2]/div/div[1]/span[2]",
+        "costoRinnovo":  "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]/div/div[1]/span[1]"
     }
 
     def __init__(self, username: str, password: str):
         self._username = username
         self._password = password
-        self._page = None
+        self._pages = None
 
-    def _getXPath(self, name: str, estero: bool=False) -> str:
+    def _getXPath(self, name: str, estero: bool=False, page: int=0) -> str:
         intIndex = 3 if estero else 2
         xpath = self._xpaths[name].format(intIndex)
         if "text()" not in xpath:
             xpath += "/text()"
-        return str(self._page.xpath(xpath)[0]).strip(" \n")
+        return str(self._pages[page].xpath(xpath)[0]).strip(" \n")
 
     def load(self):
         loginInfo = {
@@ -49,7 +51,9 @@ class IliadApi:
         with reqSession() as httpSession:
             httpSession.get(self.loginUrl)
             resp = httpSession.post(self.loginUrl, loginInfo)
-        tree = html.fromstring(resp.content)
+            infoPage = html.fromstring(resp.content)
+            resp = httpSession.get(self.offertaUrl)
+            offertaPage = html.fromstring(resp.content)
 
         # Remove promotional divs
         delDivs = [
@@ -59,12 +63,12 @@ class IliadApi:
         ]
         for div in delDivs:
             try:
-                div = tree.xpath(div)[0]
+                div = infoPage.xpath(div)[0]
                 div.getparent().remove(div)
             except Exception:
                 pass
 
-        self._page = tree
+        self._pages = [infoPage, offertaPage]
 
     def nome(self) -> str:
         el = self._getXPath("nome")
@@ -129,3 +133,8 @@ class IliadApi:
     def costoMms(self, estero: bool=False) -> float:
         el = self._getXPath("costoMms", estero)
         return float(el.replace("€", ""))
+
+    def costoRinnovo(self) -> float:
+        el = self._getXPath("costoRinnovo", page=1)
+        raw = re.findall(r'\d+.\d+', el)
+        return float(raw[0])

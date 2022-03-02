@@ -1,4 +1,4 @@
-from pony.orm import Database, Required, Optional, Json
+from pony.orm import Database, Required, Optional, Json, StrArray
 
 db = Database("sqlite", "../iliadinfobot.db", create_db=True)
 
@@ -38,6 +38,14 @@ class Data(db.Entity):
     ext_pianoGiga = Optional(Json)
     ext_totMms = Optional(int)
     ext_costoMms = Optional(float)
+
+
+class Notifs(db.Entity):
+    chatId = Required(int)
+    active = Required(StrArray, default=["50%", "80%", "90%", "100%", "credito", "dailyData"])
+    lastDataPerc = Required(float, default=0)
+    dailyTrigger = Required(bool, default=False)
+    lastGigaUsati = Required(float, default=0)
 
 
 db.generate_mapping(create_tables=True)

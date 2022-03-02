@@ -1,4 +1,4 @@
-from modules.database import User, Data
+from modules.database import User, Data, Notifs
 
 adminIds = [368894926] # Bot Creator
 
@@ -25,7 +25,7 @@ def clearUserData(chatId):
 def fetchAndStore(api, chatId):
     data = Data.get(chatId=chatId)
     data.credito = api.credito()
-    data.dataRinnovo = api.dataRinnovo().strftime("%d/%m alle %H:%M")
+    data.dataRinnovo = api.dataRinnovo().strftime("%d/%m/%Y %H:%M")
     data.nome = api.nome()
     data.accountId = api.id()
     data.numero = api.numero()
@@ -49,3 +49,16 @@ def fetchAndStore(api, chatId):
     data.ext_pianoGiga = api.pianoGiga(estero=True)
     data.ext_totMms = api.totMms(estero=True)
     data.ext_costoMms = api.costoMms(estero=True)
+
+
+def unitToGB(data, decimals=2):
+    multipliers = {
+        "B":  1024**3,
+        "KB": 1024**2,
+        "MB": 1024,
+        "GB": 1
+    }
+
+    value = data["count"]
+    unit = data["unit"]
+    return round(value/multipliers[unit], decimals)

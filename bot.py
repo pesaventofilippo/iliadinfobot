@@ -6,7 +6,7 @@ from pony.orm import db_session, select, commit
 from telepotpro.exception import TelegramError, BotWasBlockedError
 
 from modules import helpers, keyboards
-from modules.database import User, Data
+from modules.database import User, Data, Notifs
 from modules.api import AuthenticationFailedError, IliadApi
 from modules.crypter import crypt_password, decrypt_password
 
@@ -23,14 +23,57 @@ updatesEvery = 30 # minutes
 
 
 @db_session
-def runUserUpdate(chatId):
+def runUserUpdate(chatId, resetDaily: bool=False):
     user = User.get(chatId=chatId)
+    if not Notifs.exists(lambda n: n.chatId == chatId):
+        Notifs(chatId=chatId)
+    notifs = Notifs.get(chatId=chatId)
+
     api = IliadApi(user.username, decrypt_password(chatId))
     try:
         api.load()
     except AuthenticationFailedError:
         helpers.clearUserData(chatId)
         return
+
+    giorniRimanenti = (api.dataRinnovo() - datetime.today()).days + 1
+    gigaUsati = helpers.unitToGB(api.totGiga())
+    if resetDaily:
+        notifs.dailyTrigger = False
+        notifs.lastGigaUsati = gigaUsati
+
+    # Calcolo soglia GB
+    gigaTot = helpers.unitToGB(api.pianoGiga())
+    sogliaPerc = round((gigaUsati/gigaTot)*100, 2)
+    for soglia in [100, 90, 80, 50]:
+        if sogliaPerc >= soglia and notifs.lastDataPerc < soglia:
+            notifs.lastDataPerc = sogliaPerc
+            if f"{soglia}%" in notifs.active:
+                bot.sendMessage(chatId, f"⚠️ <b>Avviso soglia dati</b>\n"
+                                        f"Hai superato il <b>{soglia}%</b> della tua quota dati mensile.", parse_mode="HTML")
+            break
+
+    # Calcolo daily quota
+    if "dailyData" in notifs.active and not notifs.dailyTrigger:
+        gigaRimanenti = gigaTot - gigaUsati
+        usedToday = gigaUsati - notifs.lastGigaUsati
+        dailyQuota = (gigaRimanenti+usedToday) / giorniRimanenti
+        dailyPerc = round((usedToday/dailyQuota)*100, 2)
+        if dailyPerc >= 100:
+            bot.sendMessage(chatId, f"📊 <b>Soglia dati giornaliera</b>\n"
+                                    f"Hai superato la tua soglia dati giornaliera ({dailyQuota:.1f}GB).\n\n"
+                                    f"Nota: non significa che hai raggiunto il limite del piano dati. Usa /soglia per "
+                                    f"avere più informazioni.")
+            notifs.dailyTrigger = True
+
+    # Calcolo costo rinnovo
+    costo = api.costoRinnovo()
+    credito = api.credito()
+    if (credito < costo) and ("credito" in notifs.active) and (giorniRimanenti <= 100) \
+            and (datetime.now().strftime("%H:%M") == "13:10"):
+        bot.sendMessage(chatId, f"💰 <b>Credito insufficiente</b>\n"
+                                f"L'offerta si rinnoverà tra {giorniRimanenti} giorni a €{costo}, ma il tuo credito "
+                                f"attuale è di €{credito}. Ricordati di effettuare una ricarica!", parse_mode="HTML")
 
     helpers.fetchAndStore(api, chatId)
     user.remainingCalls = 3
@@ -39,8 +82,9 @@ def runUserUpdate(chatId):
 @db_session
 def runUpdates():
     pendingUsers = select(user.chatId for user in User if user.password != "")[:]
+    resetDaily = datetime.now().strftime("%H:%M") == "00:00"
     for currentUser in pendingUsers:
-        Thread(target=runUserUpdate, args=[currentUser]).start()
+        Thread(target=runUserUpdate, args=[currentUser, resetDaily]).start()
 
 
 @db_session
@@ -57,9 +101,12 @@ def reply(msg):
         User(chatId=chatId)
     if not Data.exists(lambda d: d.chatId == chatId):
         Data(chatId=chatId)
+    if not Notifs.exists(lambda n: n.chatId == chatId):
+        Notifs(chatId=chatId)
 
     user = User.get(chatId=chatId)
     data = Data.get(chatId=chatId)
+    notifs = Notifs.get(chatId=chatId)
 
     if text == "/about":
         bot.sendMessage(chatId, "ℹ️ <b>Informazioni sul bot</b>\n"
@@ -133,6 +180,7 @@ def reply(msg):
                                     "non mi serve più!</i>", parse_mode="HTML")
             sent = bot.sendMessage(chatId, "🔍 Aggiorno il profilo...")
             helpers.fetchAndStore(api, chatId)
+            notifs.lastGigaUsati = helpers.unitToGB(api.totGiga())
             bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
 
         elif user.status == "calling_support":
@@ -158,6 +206,7 @@ def reply(msg):
                                 "- /overview - Riepilogo generale dei consumi\n"
                                 "- /credito - Credito residuo\n"
                                 "- /internet - Visualizza piano dati\n"
+                                "- /soglia - Visualizza soglia giornaliera\n"
                                 "- /chiamate - Visualizza piano chiamate\n"
                                 "- /sms - Visualizza piano SMS\n"
                                 "- /mms - Visualizza piano MMS\n"
@@ -227,13 +276,25 @@ def reply(msg):
                                     "Sei <b>veramente sicuro</b> di voler uscire?",
                             parse_mode="HTML", reply_markup=keyboards.logout())
 
+        elif text == "/soglia":
+            gigaTot, gigaUsati = helpers.unitToGB(data.pianoGiga), helpers.unitToGB(data.totGiga)
+            gigaRimanenti = gigaTot - gigaUsati
+            usedToday = gigaUsati - notifs.lastGigaUsati
+            giorni = (datetime.strptime(data.dataRinnovo, "%d/%m/%Y %H:%M") - datetime.today()).days + 1
+            dailyQuota = (gigaRimanenti + usedToday) / giorni
+            bot.sendMessage(chatId, f"📊 <b>Soglia dati giornaliera</b>\n"
+                                    f"Oggi hai usato <b>{usedToday}GB</b>.\n\n"
+                                    f"Ti rimangono {gigaRimanenti}GB da usare in {giorni} giorni. Per non sforare, "
+                                    f"puoi usare <b>{dailyQuota:.1f}GB</b> al giorno (in media).", parse_mode="HTML")
+
         elif text == "/profilo":
+            dataRinnovo = datetime.strptime(data.dataRinnovo, "%d/%m/%Y %H:%M").strftime("%d/%m alle %H:%M")
             bot.sendMessage(chatId, f"👤 <b>Info profilo</b>\n\n"
                                     f"ℹ️ Nome: <b>{data.nome}</b>\n"
                                     f"📞 Numero: <b>{data.numero}</b>\n"
                                     f"🆔 ID Account: <b>{data.accountId}</b>\n\n"
-                                    f"💶 Credito residuo: <b>{data.credito:.2f}€</b>\n"
-                                    f"📅 Data rinnovo: <b>{data.dataRinnovo}</b>", parse_mode="HTML")
+                                    f"💶 Credito residuo: <b>€{data.credito:.2f}</b>\n"
+                                    f"📅 Data rinnovo: <b>{dataRinnovo}</b>", parse_mode="HTML")
 
         elif text == "/overview":
             costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms
@@ -243,45 +304,45 @@ def reply(msg):
                                     f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
                                     f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
                                     f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
-                                    f"💸 Costi extra: {costo:.2f}€",
+                                    f"💸 Costi extra: €{costo:.2f}",
                             parse_mode="HTML", reply_markup=keyboards.overviewExt())
 
         elif text == "/credito":
-            bot.sendMessage(chatId, f"Il tuo credito residuo è di <b>{data.credito:.2f} euro</b>.", parse_mode="HTML")
+            bot.sendMessage(chatId, f"Il tuo credito residuo è di <b>€{data.credito:.2f}</b>.", parse_mode="HTML")
 
         elif text == "/chiamate":
             bot.sendMessage(chatId, f"🇮🇹 <b>Chiamate in Italia</b>\n"
                                     f"🕙 Tempo: <b>{data.totChiamate}</b>\n"
-                                    f"💸 Costi extra: <b>{data.costoChiamate:.2f}€</b>\n\n"
+                                    f"💸 Costi extra: <b>€{data.costoChiamate:.2f}</b>\n\n"
                                     f"🇪🇺 <b>Chiamate in Europa</b>\n"
                                     f"🕙 Tempo: <b>{data.ext_totChiamate}</b>\n"
-                                    f"💸 Costi extra: <b>{data.ext_costoChiamate:.2f}€</b>", parse_mode="HTML")
+                                    f"💸 Costi extra: <b>€{data.ext_costoChiamate:.2f}</b>", parse_mode="HTML")
 
         elif text == "/sms":
             bot.sendMessage(chatId, f"🇮🇹 <b>SMS in Italia</b>\n"
                                     f"✉️ Inviati: <b>{data.totSms} SMS</b>\n"
-                                    f"💸 Costi extra: <b>{data.costoSms:.2f}€</b>\n\n"
+                                    f"💸 Costi extra: <b>€{data.costoSms:.2f}</b>\n\n"
                                     f"🇪🇺 <b>SMS in Europa</b>\n"
                                     f"✉️ Inviati: <b>{data.ext_totSms} SMS</b>\n"
-                                    f"💸 Costi extra: <b>{data.ext_costoSms:.2f}€</b>", parse_mode="HTML")
+                                    f"💸 Costi extra: <b>€{data.ext_costoSms:.2f}</b>", parse_mode="HTML")
 
         elif text == "/mms":
             bot.sendMessage(chatId, f"🇮🇹 <b>MMS in Italia</b>\n"
                                     f"📧 Inviati: <b>{data.totMms} MMS</b>\n"
-                                    f"💸 Costi extra: <b>{data.costoSms:.2f}€</b>\n\n"
+                                    f"💸 Costi extra: <b>€{data.costoSms:.2f}</b>\n\n"
                                     f"🇪🇺 <b>MMS in Europa</b>\n"
                                     f"📧 Inviati: <b>{data.ext_totMms} MMS</b>\n"
-                                    f"💸 Costi extra: <b>{data.ext_costoMms:.2f}€</b>", parse_mode="HTML")
+                                    f"💸 Costi extra: <b>€{data.ext_costoMms:.2f}</b>", parse_mode="HTML")
 
         elif text == "/internet":
             bot.sendMessage(chatId, f"🇮🇹 <b>Piano dati in Italia</b>\n"
                                     f"📶 Consumati: <b>{data.totGiga['count']}{data.totGiga['unit']}</b> su <b>"
                                            f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
-                                    f"💸 Costi extra: <b>{data.costoGiga:.2f}€</b>\n\n"
+                                    f"💸 Costi extra: <b>€{data.costoGiga:.2f}</b>\n\n"
                                     f"🇪🇺 <b>Piano dati in Europa</b>\n"
                                     f"📶 Consumati: <b>{data.ext_totGiga['count']}{data.ext_totGiga['unit']}</b> su <b>"
                                            f"{data.ext_pianoGiga['count']}{data.ext_pianoGiga['unit']}</b>\n"
-                                    f"💸 Costi extra: <b>{data.ext_costoGiga:.2f}€</b>", parse_mode="HTML")
+                                    f"💸 Costi extra: <b>€{data.ext_costoGiga:.2f}</b>", parse_mode="HTML")
 
         elif text == "/support":
             user.status = "calling_support"
@@ -354,7 +415,7 @@ def button_press(msg):
                                      f"{data.ext_pianoGiga['count']}{data.ext_pianoGiga['unit']}</b>\n"
                                      f"✉️ SMS Inviati: <b>{data.ext_totSms}</b>\n"
                                      f"📧 MMS Inviati: <b>{data.ext_totMms}</b>\n\n"
-                                     f"💸 Costi extra: {costo:.2f}€",
+                                     f"💸 Costi extra: €{costo:.2f}",
                             parse_mode="HTML", reply_markup=keyboards.overviewIta())
 
     elif button == "overview_ita":
@@ -365,7 +426,7 @@ def button_press(msg):
                                      f"{data.pianoGiga['count']}{data.pianoGiga['unit']}</b>\n"
                                      f"✉️ SMS Inviati: <b>{data.totSms}</b>\n"
                                      f"📧 MMS Inviati: <b>{data.totMms}</b>\n\n"
-                                     f"💸 Costi extra: {costo:.2f}€",
+                                     f"💸 Costi extra: €{costo:.2f}",
                             parse_mode="HTML", reply_markup=keyboards.overviewExt())
 
 
