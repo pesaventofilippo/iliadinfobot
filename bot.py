@@ -46,12 +46,12 @@ def runUserUpdate(chatId, resetDaily: bool=False):
     gigaTot = helpers.unitToGB(api.pianoGiga())
     sogliaPerc = round((gigaUsati/gigaTot)*100, 2)
     for soglia in [100, 90, 80, 50]:
-        if sogliaPerc >= soglia and notifs.lastDataPerc < soglia:
-            notifs.lastDataPerc = sogliaPerc
-            if f"{soglia}%" in notifs.active:
+        if f"{soglia}%" in notifs.active:
+            if sogliaPerc >= soglia and notifs.lastDataPerc < soglia:
+                notifs.lastDataPerc = sogliaPerc
                 bot.sendMessage(chatId, f"⚠️ <b>Avviso soglia dati</b>\n"
                                         f"Hai superato il <b>{soglia}%</b> della tua quota dati mensile.", parse_mode="HTML")
-            break
+                break
 
     # Calcolo daily quota
     if "dailyData" in notifs.active and not notifs.dailyTrigger:
@@ -63,14 +63,14 @@ def runUserUpdate(chatId, resetDaily: bool=False):
             bot.sendMessage(chatId, f"📊 <b>Soglia dati giornaliera</b>\n"
                                     f"Hai superato la tua soglia dati giornaliera ({dailyQuota:.1f}GB).\n\n"
                                     f"Nota: non significa che hai raggiunto il limite del piano dati. Usa /soglia per "
-                                    f"avere più informazioni.")
+                                    f"avere più informazioni.", parse_mode="HTML")
             notifs.dailyTrigger = True
 
     # Calcolo costo rinnovo
     costo = api.costoRinnovo()
     credito = api.credito()
-    if (credito < costo) and ("credito" in notifs.active) and (giorniRimanenti <= 100) \
-            and (datetime.now().strftime("%H:%M") == "13:10"):
+    if (credito < costo) and ("credito" in notifs.active) and (giorniRimanenti <= 3) \
+            and (datetime.now().strftime("%H:%M") == "18:00"):
         bot.sendMessage(chatId, f"💰 <b>Credito insufficiente</b>\n"
                                 f"L'offerta si rinnoverà tra {giorniRimanenti} giorni a €{costo}, ma il tuo credito "
                                 f"attuale è di €{credito}. Ricordati di effettuare una ricarica!", parse_mode="HTML")
