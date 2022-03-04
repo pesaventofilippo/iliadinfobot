@@ -17,8 +17,7 @@ class IliadApi:
         "id":            "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[2]/span",
         "numero":        "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[3]/span",
         "credito":       "//*[@id='container']/div/div/div[2]/div/div/div/div/h2/b",
-        "rinnovo":       "//*[@id='container']/div/div/div[2]/div[3]/div/div/div/div[2]",
-        "rinnovo2":      "//*[@id='container']/div/div/div[2]/div[3]/div/div/div/div[1]",
+        "rinnovo":       "//*[@id='container']/div/div/div[2]/div[1]/div/div/div/div[2]",
         "totChiamate":   "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[1]",
         "costoChiamate": "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[2]",
         "totSms":        "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[2]/div/div[1]/span[1]",
@@ -31,10 +30,11 @@ class IliadApi:
         "costoRinnovo":  "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]/div/div[1]/span[1]"
     }
 
-    def __init__(self, username: str, password: str):
+    def __init__(self, username: str, password: str, _debug: bool=False):
         self._username = username
         self._password = password
         self._pages = None
+        self._debug = _debug
 
     def _getXPath(self, name: str, estero: bool=False, page: int=0) -> str:
         intIndex = 3 if estero else 2
@@ -52,6 +52,10 @@ class IliadApi:
         with reqSession() as httpSession:
             httpSession.get(self.loginUrl)
             resp = httpSession.post(self.loginUrl, loginInfo)
+            if self._debug:
+                with open("out.html", "wb") as f:
+                    f.write(resp.content)
+                return
             infoPage = html.fromstring(resp.content)
             resp = httpSession.get(self.offertaUrl)
             offertaPage = html.fromstring(resp.content)
@@ -88,12 +92,8 @@ class IliadApi:
         return float(el.replace("€", ""))
 
     def dataRinnovo(self) -> datetime:
-        try:
-            el = self._getXPath("rinnovo")
-            return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
-        except Exception:
-            el = self._getXPath("rinnovo2")
-            return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
+        el = self._getXPath("rinnovo")
+        return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
 
     def totChiamate(self, estero: bool=False) -> str:
         el = self._getXPath("totChiamate", estero)
