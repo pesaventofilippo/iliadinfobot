@@ -59,7 +59,8 @@ class IliadApi:
         delDivs = [
             "//div[@class='marketing-consent-banner']",
             "//div[@class='change-offer-banner']",
-            "//div[@class='banner-payment-upgrade']"
+            "//div[@class='banner-payment-upgrade']",
+            "//div[@class='banner-usa']"
         ]
         for div in delDivs:
             try:
