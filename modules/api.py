@@ -18,6 +18,7 @@ class IliadApi:
         "numero":        "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[3]/span",
         "credito":       "//*[@id='container']/div/div/div[2]/div/div/div/div/h2/b",
         "rinnovo":       "//*[@id='container']/div/div/div[2]/div[2]/div/div/div/div[1]",
+        "rinnovo2":      "//*[@id='container']/div/div/div[2]/div[2]/div/div/div/div[2]",
         "totChiamate":   "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[1]",
         "costoChiamate": "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[2]",
         "totSms":        "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[2]/div/div[1]/span[1]",
@@ -59,8 +60,7 @@ class IliadApi:
         delDivs = [
             "//div[@class='marketing-consent-banner']",
             "//div[@class='change-offer-banner']",
-            "//div[@class='banner-payment-upgrade']",
-            "//*[@id='container']/div/div/div[2]/div[2]/div/div/div/div[1]"
+            "//div[@class='banner-payment-upgrade']"
         ]
         for div in delDivs:
             try:
@@ -88,8 +88,12 @@ class IliadApi:
         return float(el.replace("€", ""))
 
     def dataRinnovo(self) -> datetime:
-        el = self._getXPath("rinnovo")
-        return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
+        try:
+            el = self._getXPath("rinnovo")
+            return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
+        except Exception:
+            el = self._getXPath("rinnovo2")
+            return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
 
     def totChiamate(self, estero: bool=False) -> str:
         el = self._getXPath("totChiamate", estero)
