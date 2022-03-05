@@ -136,29 +136,27 @@ if __name__ == '__main__':
     api = IliadApi(user, passw)
     api.load()
 
-    toTestItalia = [
+    toTest_Singolo = [
         api.nome, api.id, api.numero,
-        api.credito, api.dataRinnovo, api.costoRinnovo,
+        api.credito, api.dataRinnovo, api.costoRinnovo
+    ]
+    toTest_Roaming = [
         api.totChiamate, api.costoChiamate,
         api.totSms, api.costoSms,
         api.totMms, api.costoMms,
         api.totGiga, api.pianoGiga, api.costoGiga
     ]
-    toTestEsteri = [
-        api.totChiamate, api.costoChiamate,
-        api.totSms, api.costoSms,
-        api.totMms, api.costoMms,
-        api.totGiga, api.pianoGiga, api.costoGiga
-    ]
+
     print("------------------------------------------------------")
-    print("############ ITALIA #############")
-    for f in toTestItalia:
+    print("############# DATI #############")
+    for f in toTest_Singolo:
         print(f"api.{f.__name__}: {repr(f())}")
     print("------------------------------------------------------")
-    print("############ ESTERO #############")
-    for f in toTestItalia:
-        if f in toTestEsteri:
-            print(f"api.{f.__name__}: {repr(f(estero=True))}")
-        else:
-            print(f"api.{f.__name__}: {repr(f())}")
+    print("############ ITALIA ############")
+    for f in toTest_Roaming:
+        print(f"api.{f.__name__}: {repr(f())}")
+    print("------------------------------------------------------")
+    print("############ ESTERO ############")
+    for f in toTest_Roaming:
+        print(f"api.{f.__name__}: {repr(f(estero=True))}")
     print("------------------------------------------------------")

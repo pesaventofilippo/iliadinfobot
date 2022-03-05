@@ -114,10 +114,10 @@ def reply(msg):
 
     if text == "/about":
         bot.sendMessage(chatId, "ℹ️ <b>Informazioni sul bot</b>\n"
-                                "IliadInfoBot è un bot creato e sviluppato da Filippo Pesavento, che ti permette "
+                                "IliadInfoBot è un bot creato da Filippo Pesavento, che ti permette "
                                 "di visualizzare tutte le info sul tuo account Iliad in mancanza dell'app.\n"
                                 "Prova ad usarlo per scoprire quanto è comodo!\n\n"
-                                "<b>Sviluppo:</b> Filippo Pesavento\n"
+                                "<b>Sviluppo:</b> Filippo Pesavento, Giulian Biolo\n"
                                 "<b>Hosting:</b> Filippo Pesavento\n"
                                 "<b>Info sicurezza:</b> /aboutprivacy\n\n"
                                 "<i>IliadInfoBot non è in alcun modo affiliato con Iliad Italia S.p.A ed è una creazione "
@@ -287,8 +287,8 @@ def reply(msg):
             giorni = (datetime.strptime(data.dataRinnovo, "%d/%m/%Y %H:%M") - datetime.today()).days + 1
             dailyQuota = (gigaRimanenti + usedToday) / giorni
             bot.sendMessage(chatId, f"📊 <b>Soglia dati giornaliera</b>\n"
-                                    f"Oggi hai usato <b>{usedToday}GB</b>.\n\n"
-                                    f"Ti rimangono {gigaRimanenti}GB da usare in {giorni} giorni. Per non sforare, "
+                                    f"Oggi hai usato <b>{usedToday:.1f}GB</b>.\n\n"
+                                    f"Ti rimangono {gigaRimanenti:.1f}GB da usare in {giorni} giorni. Per non sforare, "
                                     f"puoi usare <b>{dailyQuota:.1f}GB</b> al giorno (in media).", parse_mode="HTML")
 
         elif text == "/profilo":
