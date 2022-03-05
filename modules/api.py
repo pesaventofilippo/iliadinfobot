@@ -13,6 +13,7 @@ class IliadApi:
     loginUrl = "https://www.iliad.it/account/"
     offertaUrl = "https://www.iliad.it/account/gestisci-lofferta"
     _xpaths = {
+        "loginError":    "//div[@class='flash flash-error']",
         "nome":          "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[1]/text()[2]",
         "id":            "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[2]/span",
         "numero":        "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[3]/span",
@@ -51,9 +52,13 @@ class IliadApi:
         with reqSession() as httpSession:
             httpSession.get(self.loginUrl)
             resp = httpSession.post(self.loginUrl, loginInfo)
-            self._pages.append(html.fromstring(resp.content))
+            infoPage = html.fromstring(resp.content)
             resp = httpSession.get(self.offertaUrl)
-            self._pages.append(html.fromstring(resp.content))
+            offerPage = html.fromstring(resp.content)
+
+        if infoPage.xpath(self._xpaths["loginError"]):
+            raise AuthenticationFailedError
+        self._pages = [infoPage, offerPage]
 
     def nome(self) -> str:
         el = self._getXPath("nome")
