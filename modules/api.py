@@ -13,21 +13,21 @@ class IliadApi:
     loginUrl = "https://www.iliad.it/account/"
     offertaUrl = "https://www.iliad.it/account/gestisci-lofferta"
     _xpaths = {
-        "nome":          "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[1]/text()[2]",
-        "id":            "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[2]/span",
-        "numero":        "//*[@id='account-conso']/div[1]/div[1]/div/nav/div/div/div[2]/div[3]/span",
-        "credito":       "//*[@id='container']/div/div/div[2]/div/div/div/div/h2/b",
+        "nome":          "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[1]/text()[2]",
+        "id":            "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[2]/span",
+        "numero":        "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[3]/span",
+        "credito":       "//div[@class='toggle-conso']/preceding-sibling::b",
         "rinnovo":       "//div[@class='end_offerta']",
-        "totChiamate":   "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[1]",
-        "costoChiamate": "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[1]/div/div[1]/span[2]",
-        "totSms":        "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[2]/div/div[1]/span[1]",
-        "costoSms":      "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[1]/div[2]/div/div[1]/span[2]",
-        "totGiga":       "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/span[1]",
-        "costoGiga":     "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/span[2]",
-        "pianoGiga":     "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[1]/div/div[1]/text()[2]",
-        "totMms":        "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[2]/div/div[1]/span[1]",
-        "costoMms":      "//*[@id='container']/div/div/div[2]/div/div/div/div/div[{0}]/div[2]/div[2]/div/div[1]/span[2]",
-        "costoRinnovo":  "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]/div/div[1]/span[1]"
+        "totChiamate":   "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 1° elemento nell'array
+        "costoChiamate": "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 1° elemento nell'array
+        "totSms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 2° elemento nell'array
+        "costoSms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 2° elemento nell'array
+        "totGiga":       "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 3° elemento nell'array
+        "costoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 3° elemento nell'array
+        "pianoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-local')]/descendant::div[@class='conso__text']/text()[2]", # 3° elemento nell'array
+        "totMms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 4° elemento nell'array
+        "costoMms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 4° elemento nell'array
+        "costoRinnovo":  "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]/div/div[1]/span[1]" # questo io non ce l'ho proprio nella pagina iliad
     }
 
     def __init__(self, username: str, password: str):
@@ -35,12 +35,12 @@ class IliadApi:
         self._password = password
         self._pages = None
 
-    def _getXPath(self, name: str, estero: bool=False, page: int=0) -> str:
-        intIndex = 3 if estero else 2
-        xpath = self._xpaths[name].format(intIndex)
+    def _getXPath(self, name: str, estero: bool=False, page: int=0, array_pos: int=0) -> str:
+        localOrRoaming = "roaming" if estero else "local"
+        xpath = self._xpaths[name].format(localOrRoaming)
         if "text()" not in xpath:
             xpath += "/text()"
-        return str(self._pages[page].xpath(xpath)[0]).strip(" \n")
+        return str(self._pages[page].xpath(xpath)[array_pos]).strip(" \n")
 
     def load(self):
         loginInfo = {
@@ -100,15 +100,15 @@ class IliadApi:
         return float(el.replace("€", ""))
 
     def totSms(self, estero: bool=False) -> int:
-        el = self._getXPath("totSms", estero)
+        el = self._getXPath("totSms", estero, array_pos=1)
         return int(el.replace(" SMS", ""))
 
     def costoSms(self, estero: bool=False) -> float:
-        el = self._getXPath("costoSms", estero)
+        el = self._getXPath("costoSms", estero, array_pos=1)
         return float(el.replace("€", ""))
 
     def totGiga(self, estero: bool=False) -> dict:
-        el = self._getXPath("totGiga", estero)
+        el = self._getXPath("totGiga", estero, array_pos=2)
         split = re.split('(\d+)', el.upper())[1:]
         return {
             "count": float("".join(split[:-1]).replace(",", ".")),
@@ -116,11 +116,11 @@ class IliadApi:
         }
 
     def costoGiga(self, estero: bool=False) -> float:
-        el = self._getXPath("costoGiga", estero)
+        el = self._getXPath("costoGiga", estero, array_pos=2)
         return float(el.replace("€", ""))
 
     def pianoGiga(self, estero: bool=False) -> dict:
-        el = self._getXPath("pianoGiga", estero)
+        el = self._getXPath("pianoGiga", estero, array_pos=2)
         split = re.split('(\d+)', el.upper())[1:]
         return {
             "count": float("".join(split[:-1]).replace(",", ".")),
@@ -128,11 +128,11 @@ class IliadApi:
         }
 
     def totMms(self, estero: bool=False) -> int:
-        el = self._getXPath("totMms", estero)
+        el = self._getXPath("totMms", estero, array_pos=3)
         return int(el.replace(" MMS", ""))
 
     def costoMms(self, estero: bool=False) -> float:
-        el = self._getXPath("costoMms", estero)
+        el = self._getXPath("costoMms", estero, array_pos=3)
         return float(el.replace("€", ""))
 
     def costoRinnovo(self) -> float:
