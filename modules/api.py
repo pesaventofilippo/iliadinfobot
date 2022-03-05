@@ -25,10 +25,10 @@ class IliadApi:
         "costoSms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
         "totGiga":       "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]",
         "costoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
-        "pianoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-local')]/descendant::div[@class='conso__text']/text()[2]",
+        "pianoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/text()[2]",
         "totMms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]",
         "costoMms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
-        "costoRinnovo":  "" ## TODO sistemare questo xpath (vedi offertaUrl)
+        "costoRinnovo":  "//*[@id='container']/descendant::div[contains(@class, 'rectangle-content')]/descendant::div[contains(@class,'title')]/span[1]"
     }
 
     def __init__(self, username: str, password: str):
@@ -125,11 +125,8 @@ class IliadApi:
         return float(el.replace("€", ""))
 
     def costoRinnovo(self) -> float:
-        # el = self._getXPath("costoRinnovo", page=1)
-        # raw = re.findall(r'\d+.\d+', el)
-        # return float(raw[0])
-        return 0.00
-
+        el = self._getXPath("costoRinnovo", page=1)
+        return float(el.split(" ")[-1].replace("€", ""))
 
 
 if __name__ == '__main__':
@@ -139,7 +136,7 @@ if __name__ == '__main__':
     api = IliadApi(user, passw)
     api.load()
 
-    toTest = [
+    toTestItalia = [
         api.nome, api.id, api.numero,
         api.credito, api.dataRinnovo, api.costoRinnovo,
         api.totChiamate, api.costoChiamate,
@@ -147,5 +144,21 @@ if __name__ == '__main__':
         api.totMms, api.costoMms,
         api.totGiga, api.pianoGiga, api.costoGiga
     ]
-    for f in toTest:
+    toTestEsteri = [
+        api.totChiamate, api.costoChiamate,
+        api.totSms, api.costoSms,
+        api.totMms, api.costoMms,
+        api.totGiga, api.pianoGiga, api.costoGiga
+    ]
+    print("------------------------------------------------------")
+    print("############ ITALIA #############")
+    for f in toTestItalia:
         print(f"api.{f.__name__}: {repr(f())}")
+    print("------------------------------------------------------")
+    print("############ ESTERO #############")
+    for f in toTestItalia:
+        if f in toTestEsteri:
+            print(f"api.{f.__name__}: {repr(f(estero=True))}")
+        else:
+            print(f"api.{f.__name__}: {repr(f())}")
+    print("------------------------------------------------------")
