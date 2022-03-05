@@ -42,41 +42,45 @@ def runUserUpdate(chatId, resetDaily: bool=False):
         notifs.dailyTrigger = False
         notifs.lastGigaUsati = gigaUsati
 
-    # Calcolo soglia GB
-    gigaTot = helpers.unitToGB(api.pianoGiga())
-    sogliaPerc = round((gigaUsati/gigaTot)*100, 2)
-    for soglia in [100, 90, 80, 50]:
-        if f"{soglia}%" in notifs.active:
-            if sogliaPerc >= soglia and notifs.lastDataPerc < soglia:
-                notifs.lastDataPerc = sogliaPerc
-                bot.sendMessage(chatId, f"⚠️ <b>Avviso soglia dati</b>\n"
-                                        f"Hai superato il <b>{soglia}%</b> della tua quota dati mensile.", parse_mode="HTML")
-                break
+    try: # Send notifications, remove user from database if bot was blocked
+        # Calcolo soglia GB
+        gigaTot = helpers.unitToGB(api.pianoGiga())
+        sogliaPerc = round((gigaUsati/gigaTot)*100, 2)
+        for soglia in [100, 90, 80, 50]:
+            if f"{soglia}%" in notifs.active:
+                if sogliaPerc >= soglia and notifs.lastDataPerc < soglia:
+                    notifs.lastDataPerc = sogliaPerc
+                    bot.sendMessage(chatId, f"⚠️ <b>Avviso soglia dati</b>\n"
+                                            f"Hai superato il <b>{soglia}%</b> della tua quota dati mensile.", parse_mode="HTML")
+                    break
 
-    # Calcolo daily quota
-    if "dailyData" in notifs.active and not notifs.dailyTrigger:
-        gigaRimanenti = gigaTot - gigaUsati
-        usedToday = gigaUsati - notifs.lastGigaUsati
-        dailyQuota = (gigaRimanenti+usedToday) / giorniRimanenti
-        dailyPerc = round((usedToday/dailyQuota)*100, 2)
-        if dailyPerc >= 100:
-            bot.sendMessage(chatId, f"📊 <b>Soglia dati giornaliera</b>\n"
-                                    f"Hai superato la tua soglia dati giornaliera ({dailyQuota:.1f}GB).\n\n"
-                                    f"Nota: non significa che hai raggiunto il limite del piano dati. Usa /soglia per "
-                                    f"avere più informazioni.", parse_mode="HTML")
-            notifs.dailyTrigger = True
+        # Calcolo daily quota
+        if "dailyData" in notifs.active and not notifs.dailyTrigger:
+            gigaRimanenti = gigaTot - gigaUsati
+            usedToday = gigaUsati - notifs.lastGigaUsati
+            dailyQuota = (gigaRimanenti+usedToday) / giorniRimanenti
+            dailyPerc = round((usedToday/dailyQuota)*100, 2)
+            if dailyPerc >= 100:
+                bot.sendMessage(chatId, f"📊 <b>Soglia dati giornaliera</b>\n"
+                                        f"Hai superato la tua soglia dati giornaliera ({dailyQuota:.1f}GB).\n\n"
+                                        f"Nota: non significa che hai raggiunto il limite del piano dati. Usa /soglia per "
+                                        f"avere più informazioni.", parse_mode="HTML")
+                notifs.dailyTrigger = True
 
-    # Calcolo costo rinnovo
-    costo = api.costoRinnovo()
-    credito = api.credito()
-    if (credito < costo) and ("credito" in notifs.active) and (giorniRimanenti <= 3) \
-            and (datetime.now().strftime("%H:%M") == "18:00"):
-        bot.sendMessage(chatId, f"💰 <b>Credito insufficiente</b>\n"
-                                f"L'offerta si rinnoverà tra {giorniRimanenti} giorni a €{costo}, ma il tuo credito "
-                                f"attuale è di €{credito}. Ricordati di effettuare una ricarica!", parse_mode="HTML")
+        # Calcolo costo rinnovo
+        costo = api.costoRinnovo()
+        credito = api.credito()
+        if (credito < costo) and ("credito" in notifs.active) and (giorniRimanenti <= 3) \
+                and (datetime.now().strftime("%H:%M") == "18:00"):
+            bot.sendMessage(chatId, f"💰 <b>Credito insufficiente</b>\n"
+                                    f"L'offerta si rinnoverà tra {giorniRimanenti} giorni a €{costo}, ma il tuo credito "
+                                    f"attuale è di €{credito}. Ricordati di effettuare una ricarica!", parse_mode="HTML")
 
-    helpers.fetchAndStore(api, chatId)
-    user.remainingCalls = 3
+        helpers.fetchAndStore(api, chatId)
+        user.remainingCalls = 3
+
+    except BotWasBlockedError:
+        helpers.clearUserData(chatId)
 
 
 @db_session

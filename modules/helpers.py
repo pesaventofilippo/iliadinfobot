@@ -15,11 +15,9 @@ def hasStoredCredentials(chatId):
 
 
 def clearUserData(chatId):
-    user = User.get(chatId=chatId)
-    user.delete()
-
-    data = Data.get(chatId=chatId)
-    data.delete()
+    User.get(chatId=chatId).delete()
+    Data.get(chatId=chatId).delete()
+    Notifs.get(chatId=chatId).delete()
 
 
 def fetchAndStore(api, chatId):
