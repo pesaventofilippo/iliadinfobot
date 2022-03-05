@@ -27,13 +27,13 @@ class IliadApi:
         "pianoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-local')]/descendant::div[@class='conso__text']/text()[2]",
         "totMms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]",
         "costoMms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
-        "costoRinnovo":  "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]/div/div[1]/span[1]" ## TODO modificare questo nel "nuovo stile"
+        "costoRinnovo":  "" ## TODO sistemare questo xpath (vedi offertaUrl)
     }
 
     def __init__(self, username: str, password: str):
         self._username = username
         self._password = password
-        self._pages = None
+        self._pages = []
 
     def _getXPath(self, name: str, estero: bool=False, page: int=0, array_pos: int=0) -> str:
         localOrRoaming = "roaming" if estero else "local"
@@ -51,24 +51,9 @@ class IliadApi:
         with reqSession() as httpSession:
             httpSession.get(self.loginUrl)
             resp = httpSession.post(self.loginUrl, loginInfo)
-            infoPage = html.fromstring(resp.content)
+            self._pages.append(html.fromstring(resp.content))
             resp = httpSession.get(self.offertaUrl)
-            offertaPage = html.fromstring(resp.content)
-
-        # Remove promotional divs
-        delDivs = [
-            "//div[@class='marketing-consent-banner']",
-            "//div[@class='change-offer-banner']",
-            "//div[@class='banner-payment-upgrade']"
-        ]
-        for div in delDivs:
-            try:
-                div = infoPage.xpath(div)[0]
-                div.getparent().remove(div)
-            except Exception:
-                pass
-
-        self._pages = [infoPage, offertaPage]
+            self._pages.append(html.fromstring(resp.content))
 
     def nome(self) -> str:
         el = self._getXPath("nome")
@@ -135,9 +120,10 @@ class IliadApi:
         return float(el.replace("€", ""))
 
     def costoRinnovo(self) -> float:
-        el = self._getXPath("costoRinnovo", page=1)
-        raw = re.findall(r'\d+.\d+', el)
-        return float(raw[0])
+        # el = self._getXPath("costoRinnovo", page=1)
+        # raw = re.findall(r'\d+.\d+', el)
+        # return float(raw[0])
+        return 0.00
 
 
 
