@@ -18,16 +18,16 @@ class IliadApi:
         "numero":        "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[3]/span",
         "credito":       "//div[@class='toggle-conso']/preceding-sibling::b",
         "rinnovo":       "//div[@class='end_offerta']",
-        "totChiamate":   "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 1° elemento nell'array
-        "costoChiamate": "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 1° elemento nell'array
-        "totSms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 2° elemento nell'array
-        "costoSms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 2° elemento nell'array
-        "totGiga":       "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 3° elemento nell'array
-        "costoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 3° elemento nell'array
-        "pianoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-local')]/descendant::div[@class='conso__text']/text()[2]", # 3° elemento nell'array
-        "totMms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]", # 4° elemento nell'array
-        "costoMms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]", # 4° elemento nell'array
-        "costoRinnovo":  "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]/div/div[1]/span[1]" # questo io non ce l'ho proprio nella pagina iliad
+        "totChiamate":   "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]",
+        "costoChiamate": "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
+        "totSms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]",
+        "costoSms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
+        "totGiga":       "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]",
+        "costoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
+        "pianoGiga":     "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-local')]/descendant::div[@class='conso__text']/text()[2]",
+        "totMms":        "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[1]",
+        "costoMms":      "//div[contains(@class, 'conso-infos')][contains(@class, 'conso-{0}')]/descendant::div[@class='conso__text']/span[2]",
+        "costoRinnovo":  "//*[@id='container']/div/div/div[2]/div/div/div/div/div[1]/div/div[1]/span[1]" ## TODO modificare questo nel "nuovo stile"
     }
 
     def __init__(self, username: str, password: str):
@@ -87,9 +87,8 @@ class IliadApi:
         return float(el.replace("€", ""))
 
     def dataRinnovo(self) -> datetime:
-        #el = self._getXPath("rinnovo")
-        #return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
-        return datetime(1970,1,1)
+        el = self._getXPath("rinnovo")
+        return datetime.strptime(el[-20:], "%H:%M del %d/%m/%Y")
 
     def totChiamate(self, estero: bool=False) -> str:
         el = self._getXPath("totChiamate", estero)
@@ -139,3 +138,23 @@ class IliadApi:
         el = self._getXPath("costoRinnovo", page=1)
         raw = re.findall(r'\d+.\d+', el)
         return float(raw[0])
+
+
+
+if __name__ == '__main__':
+    print("## API DEBUG MODE ##")
+    user = input("ID Iliad: ")
+    passw = input("Password: ")
+    api = IliadApi(user, passw)
+    api.load()
+
+    toTest = [
+        api.nome, api.id, api.numero,
+        api.credito, api.dataRinnovo, api.costoRinnovo,
+        api.totChiamate, api.costoChiamate,
+        api.totSms, api.costoSms,
+        api.totMms, api.costoMms,
+        api.totGiga, api.pianoGiga, api.costoGiga
+    ]
+    for f in toTest:
+        print(f"api.{f.__name__}: {repr(f())}")
