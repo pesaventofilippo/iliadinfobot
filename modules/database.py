@@ -15,6 +15,7 @@ class Data(db.Entity):
     chatId = Required(int)
     credito = Optional(float)
     dataRinnovo = Optional(str)
+    costoRinnovo = Optional(float)
     nome = Optional(str)
     accountId = Optional(int)
     numero = Optional(str)

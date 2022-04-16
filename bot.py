@@ -298,7 +298,8 @@ def reply(msg):
                                     f"📞 Numero: <b>{data.numero}</b>\n"
                                     f"🆔 ID Account: <b>{data.accountId}</b>\n\n"
                                     f"💶 Credito residuo: <b>€{data.credito:.2f}</b>\n"
-                                    f"📅 Data rinnovo: <b>{dataRinnovo}</b>", parse_mode="HTML")
+                                    f"📅 Data rinnovo: <b>{dataRinnovo}</b>\n"
+                                    f"💰 Costo rinnovo: <b>€{data.costoRinnovo:.2f}</b>", parse_mode="HTML")
 
         elif text == "/overview":
             costo = data.costoChiamate + data.costoGiga + data.costoSms + data.costoMms

@@ -24,6 +24,7 @@ def fetchAndStore(api, chatId):
     data = Data.get(chatId=chatId)
     data.credito = api.credito()
     data.dataRinnovo = api.dataRinnovo().strftime("%d/%m/%Y %H:%M")
+    data.costoRinnovo = api.costoRinnovo()
     data.nome = api.nome()
     data.accountId = api.id()
     data.numero = api.numero()
