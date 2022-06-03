@@ -11,7 +11,7 @@ class AuthenticationFailedError(Exception):
 
 class IliadApi:
     loginUrl = "https://www.iliad.it/account/"
-    offertaUrl = "https://www.iliad.it/account/gestisci-lofferta"
+    offertaUrl = "https://www.iliad.it/account/la-mia-offerta"
     _xpaths = {
         "loginError":    "//div[@class='flash flash-error']",
         "nome":          "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[1]/text()[2]",
