@@ -82,9 +82,8 @@ def runUserUpdate(chatId, resetDaily: bool=False):
 
 
 @db_session
-def runUpdates():
+def runUpdates(resetDaily: bool=False):
     pendingUsers = select(user.chatId for user in User if user.password != "")[:]
-    resetDaily = datetime.now().strftime("%H:%M") == "00:00"
     for currentUser in pendingUsers:
         Thread(target=runUserUpdate, args=[currentUser, resetDaily]).start()
 
@@ -227,9 +226,9 @@ def reply(msg):
         bot.sendMessage(chatId, f"👤 Utenti totali: <b>{totalUsers}</b>\n"
                                 f"👤 Utenti loggati: <b>{loggedUsers}</b>", parse_mode="HTML")
 
-    elif text == "/globalupdate" and helpers.isAdmin(chatId):
+    elif text.startswith("/globalupdate") and helpers.isAdmin(chatId):
         bot.sendMessage(chatId, "🕙 Inizio aggiornamento globale...")
-        runUpdates()
+        runUpdates(resetDaily=("reset" in text))
         bot.sendMessage(chatId, "✅ Aggiornamento globale completato!")
 
     elif text.startswith("/broadcast ") and helpers.isAdmin(chatId):
@@ -444,6 +443,7 @@ runUpdates()
 
 while True:
     sleep(60)
-    minute = datetime.now().minute
-    if minute % updatesEvery == 0:
-        runUpdates()
+    now = datetime.now()
+    reset = now.strftime("%H:%M") == "00:30" 
+    if now.minute % updatesEvery == 0:
+        runUpdates(reset)
