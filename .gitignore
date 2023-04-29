@@ -1,6 +1,6 @@
 ## Custom Files
 modules/crypter.py
-token.txt
+settings.json
 iliadinfobot.db
 venv/
 

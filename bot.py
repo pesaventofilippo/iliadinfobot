@@ -1,7 +1,8 @@
 from time import sleep
-from telepotpro import Bot
+from telepotpro import Bot, api as tgapi
 from threading import Thread
 from datetime import datetime
+from json import load as jsload
 from pony.orm import db_session, select, commit
 from telepotpro.exception import TelegramError, BotWasBlockedError
 
@@ -10,15 +11,12 @@ from modules.database import User, Data, Notifs
 from modules.api import AuthenticationFailedError, IliadApi
 from modules.crypter import crypt_password, decrypt_password
 
-try:
-    with open("token.txt", "r") as f:
-        token = f.readline().strip()
-except FileNotFoundError:
-    with open("token.txt", "w") as f:
-        token = input(" * Incolla qui il token di BotFather: ")
-        f.write(token)
+with open("settings.json") as f:
+    settings = jsload(f)
+    if settings.get("api_server"):
+        tgapi.set_api_url(settings["api_server"])
 
-bot = Bot(token)
+bot = Bot(settings["token"])
 updatesEvery = 30 # minutes
 
 

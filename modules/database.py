@@ -4,7 +4,7 @@ db = Database("sqlite", "../iliadinfobot.db", create_db=True)
 
 
 class User(db.Entity):
-    chatId = Required(int)
+    chatId = Required(int, sql_type='BIGINT', size=64)
     username = Optional(str)
     password = Optional(str)
     status = Required(str, default="normal")
@@ -12,7 +12,7 @@ class User(db.Entity):
 
 
 class Data(db.Entity):
-    chatId = Required(int)
+    chatId = Required(int, sql_type='BIGINT', size=64)
     credito = Optional(float)
     dataRinnovo = Optional(str)
     costoRinnovo = Optional(float)
@@ -42,7 +42,7 @@ class Data(db.Entity):
 
 
 class Notifs(db.Entity):
-    chatId = Required(int)
+    chatId = Required(int, sql_type='BIGINT', size=64)
     active = Required(StrArray, default=["50%", "80%", "90%", "100%", "credito", "dailyData"])
     lastDataPerc = Required(float, default=0)
     dailyTrigger = Required(bool, default=False)
