@@ -444,6 +444,6 @@ runUpdates()
 while True:
     sleep(60)
     now = datetime.now()
-    reset = now.strftime("%H:%M") == "00:30" 
+    reset = now.strftime("%H:%M") == "00:30"
     if now.minute % updatesEvery == 0:
         runUpdates(reset)

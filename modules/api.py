@@ -1,8 +1,7 @@
-from requests import session as reqSession
-from datetime import datetime
-from lxml import html
 import re
-
+from lxml import html
+from datetime import datetime
+from requests import Session
 
 class AuthenticationFailedError(Exception):
     def __init__(self):
@@ -49,15 +48,19 @@ class IliadApi:
             "login-pwd": self._password
         }
 
-        with reqSession() as httpSession:
+        with Session() as httpSession:
             httpSession.get(self.loginUrl)
             resp = httpSession.post(self.loginUrl, loginInfo)
             infoPage = html.fromstring(resp.content)
+
+            if infoPage.xpath(self._xpaths["loginError"]):
+                raise AuthenticationFailedError
+            if "ID utente o password non corretto" in infoPage.text_content():
+                raise AuthenticationFailedError
+
             resp = httpSession.get(self.offertaUrl)
             offerPage = html.fromstring(resp.content)
 
-        if infoPage.xpath(self._xpaths["loginError"]):
-            raise AuthenticationFailedError
         self._pages = [infoPage, offerPage]
 
     def nome(self) -> str:
@@ -147,16 +150,12 @@ if __name__ == '__main__':
         api.totGiga, api.pianoGiga, api.costoGiga
     ]
 
-    print("------------------------------------------------------")
     print("############# DATI #############")
     for f in toTest_Singolo:
         print(f"api.{f.__name__}: {repr(f())}")
-    print("------------------------------------------------------")
     print("############ ITALIA ############")
     for f in toTest_Roaming:
         print(f"api.{f.__name__}: {repr(f())}")
-    print("------------------------------------------------------")
     print("############ ESTERO ############")
     for f in toTest_Roaming:
         print(f"api.{f.__name__}: {repr(f(estero=True))}")
-    print("------------------------------------------------------")
