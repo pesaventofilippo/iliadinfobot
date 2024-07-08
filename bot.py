@@ -74,7 +74,11 @@ def runUserUpdate(chatId, resetDaily: bool=False):
                                     f"L'offerta si rinnoverà tra {giorniRimanenti} giorni a €{costo}, ma il tuo credito "
                                     f"attuale è di €{credito}. Ricordati di effettuare una ricarica!", parse_mode="HTML")
 
-        helpers.fetchAndStore(api, chatId)
+        commit()
+        try:
+            helpers.fetchAndStore(api, chatId)
+        except Exception:
+            pass
         user.remainingCalls = 3
 
     except BotWasBlockedError:
@@ -180,9 +184,12 @@ def reply(msg):
                                     "<i>Se vuoi, puoi eliminare il messaggio che mi hai mandato contenente la password: "
                                     "non mi serve più!</i>", parse_mode="HTML")
             sent = bot.sendMessage(chatId, "🔍 Aggiorno il profilo...")
-            helpers.fetchAndStore(api, chatId)
-            notifs.lastGigaUsati = helpers.unitToGB(api.totGiga())
-            bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
+            try:
+                helpers.fetchAndStore(api, chatId)
+                notifs.lastGigaUsati = helpers.unitToGB(api.totGiga())
+                bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
+            except Exception:
+                bot.editMessageText((chatId, sent['message_id']), "⚠️ Errore nell'aggiornamento del profilo.")
 
         elif user.status == "calling_support":
             user.status = "normal"
@@ -370,8 +377,11 @@ def reply(msg):
                     return
 
                 bot.editMessageText((chatId, sent['message_id']), "📗📙📙 Cerco aggiornamenti... 50%")
-                helpers.fetchAndStore(api, chatId)
-                bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
+                try:
+                    helpers.fetchAndStore(api, chatId)
+                    bot.editMessageText((chatId, sent['message_id']), "✅ Profilo aggiornato!")
+                except Exception:
+                    bot.editMessageText((chatId, sent['message_id']), "⚠️ Errore nell'aggiornamento.")
 
             else:
                 bot.sendMessage(chatId, "⛔️ Hai usato troppi /aggiorna recentemente. Aspetta un po'!")
