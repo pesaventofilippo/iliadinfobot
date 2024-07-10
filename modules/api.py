@@ -10,7 +10,7 @@ class AuthenticationFailedError(Exception):
 
 class IliadApi:
     loginUrl = "https://www.iliad.it/account/"
-    offertaUrl = "https://www.iliad.it/account/la-mia-offerta"
+    offertaUrl = "https://www.iliad.it/account/le-condizioni-della-mia-offerta"
     _xpaths = {
         "loginError":    "//div[@class='flash flash-error']",
         "nome":          "//body[contains(@id, 'account-conso')]/descendant::div[@class='current-user__infos']/div[1]/text()[2]",
@@ -101,7 +101,7 @@ class IliadApi:
 
     def totGiga(self, estero: bool=False) -> dict:
         el = self._getXPath("totGiga", estero, array_pos=2)
-        split = re.split('(\d+)', el.upper())[1:]
+        split = re.split(r'(\d+)', el.upper())[1:]
         return {
             "count": float("".join(split[:-1]).replace(",", ".")),
             "unit":  str(split[-1])
@@ -113,7 +113,7 @@ class IliadApi:
 
     def pianoGiga(self, estero: bool=False) -> dict:
         el = self._getXPath("pianoGiga", estero, array_pos=2)
-        split = re.split('(\d+)', el.upper())[1:]
+        split = re.split(r'(\d+)', el.upper())[1:]
         return {
             "count": float("".join(split[:-1]).replace(",", ".")),
             "unit": str(split[-1])
